@@ -4,11 +4,15 @@ dotenv.config();
 
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import fetch from 'node-fetch';
 
-const hostname = '127.0.0.1';
-const port = 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const hostname = '0.0.0.0'; // Changed for Vercel
+const port = process.env.PORT || 3000; // Use Vercel's port
 
 // Your OpenRouter API key from environment variables
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
@@ -16,17 +20,43 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 // Read CSS file with error handling
 let cssContent = '';
 try {
-  cssContent = readFileSync(join(process.cwd(), 'styles.css'), 'utf8');
+  // Use __dirname instead of process.cwd() for Vercel
+  cssContent = readFileSync(join(__dirname, 'styles.css'), 'utf8');
   console.log('CSS file loaded successfully');
   console.log('CSS content length:', cssContent.length);
-  console.log('First 100 characters of CSS:', cssContent.substring(0, 100));
 } catch (error) {
   console.error('Error loading CSS file:', error.message);
-  console.log('Current working directory:', process.cwd());
-  console.log('Looking for styles.css at:', join(process.cwd(), 'styles.css'));
+  console.log('Current directory:', __dirname);
+  console.log('Looking for styles.css at:', join(__dirname, 'styles.css'));
+  
+  // Fallback CSS if file not found
+  cssContent = `
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .container { max-width: 550px; width: 100%; }
+    .card { background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); }
+    h1 { font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
+    .subtitle { color: #666; text-align: center; margin-bottom: 25px; }
+    textarea { width: 100%; min-height: 100px; padding: 18px; border: 2px solid #e1e5e9; border-radius: 16px; font-size: 15px; margin-bottom: 18px; }
+    button { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 16px; font-size: 17px; font-weight: 600; cursor: pointer; }
+    .examples { margin-top: 25px; padding-top: 20px; border-top: 1px solid #e1e5e9; }
+    .example-btn { padding: 12px 16px; background: #f8f9fa; border: 1px solid #e1e5e9; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 8px; width: 100%; }
+    #output { margin-top: 25px; }
+  `;
 }
 
 const server = createServer(async (req, res) => {
+  // Enable CORS for Vercel
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    res.end();
+    return;
+  }
+
   if (req.method === 'POST' && req.url === '/api/patch') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
@@ -43,7 +73,7 @@ const server = createServer(async (req, res) => {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model: 'openai/gpt-4o-mini', // Upgraded model for better analysis
+            model: 'openai/gpt-4o-mini',
             messages: [
               { 
                 role: 'system', 
@@ -91,7 +121,7 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
       }
     });
   } else {
-    // Serve HTML UI with improved copy
+    // Serve HTML UI
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(`<!DOCTYPE html>
@@ -206,6 +236,23 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
   }
 });
 
-server.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
-});
+// Handler function for Vercel
+const handler = (req, res) => {
+  return new Promise((resolve) => {
+    server.emit('request', req, res);
+    res.on('finish', resolve);
+  });
+};
+
+// For Vercel serverless functions
+if (process.env.VERCEL) {
+  // Export for Vercel
+} else {
+  // For local development
+  server.listen(port, hostname, () => {
+    console.log(`Server running at http://${hostname}:${port}/`);
+  });
+}
+
+// Export default at top level
+export default handler;
