@@ -32,19 +32,107 @@ try {
   console.log('Current directory:', __dirname);
   console.log('Looking for styles.css at:', join(__dirname, 'styles.css'));
   
-  // Fallback CSS if file not found
+  // Fallback CSS with new dark theme
   cssContent = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { max-width: 550px; width: 100%; }
-    .card { background: rgba(255, 255, 255, 0.95); border-radius: 24px; padding: 30px; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1); }
-    h1 { font-size: 2.2rem; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
-    .subtitle { color: #666; text-align: center; margin-bottom: 25px; }
-    textarea { width: 100%; min-height: 100px; padding: 18px; border: 2px solid #e1e5e9; border-radius: 16px; font-size: 15px; margin-bottom: 18px; }
-    button { width: 100%; padding: 18px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 16px; font-size: 17px; font-weight: 600; cursor: pointer; }
-    .examples { margin-top: 25px; padding-top: 20px; border-top: 1px solid #e1e5e9; }
-    .example-btn { padding: 12px 16px; background: #f8f9fa; border: 1px solid #e1e5e9; border-radius: 12px; font-size: 14px; cursor: pointer; margin-bottom: 8px; width: 100%; }
-    #output { margin-top: 25px; }
+    
+    :root {
+      --bg-dark: #0a0a0a;
+      --surface: #111111;
+      --surface-light: #1a1a1a;
+      --text-primary: #ffffff;
+      --text-secondary: #999999;
+      --accent-red: #ff3366;
+      --accent-green: #00ff88;
+      --border: #333333;
+      --shadow: rgba(255, 51, 102, 0.1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container { max-width: 600px; width: 100%; }
+    
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 40px 35px;
+      box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent-red), var(--accent-green));
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      text-transform: uppercase;
+      letter-spacing: -2px;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      color: var(--accent-green);
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      padding: 20px;
+      background: var(--surface-light);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text-primary);
+      margin-bottom: 18px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, var(--accent-red), #cc0044);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      font-weight: 600;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .examples { margin-top: 35px; padding-top: 25px; border-top: 1px solid var(--border); }
+    .example-btn { 
+      padding: 15px 18px; 
+      background: transparent; 
+      border: 1px solid var(--border); 
+      color: var(--text-secondary); 
+      font-family: 'JetBrains Mono', monospace; 
+      cursor: pointer; 
+      width: 100%; 
+      margin-bottom: 8px; 
+    }
+    #output { margin-top: 30px; }
   `;
 }
 
@@ -60,7 +148,7 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // NEW: History endpoint
+  // History endpoint
   if (req.method === 'GET' && req.url?.startsWith('/api/history')) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const sessionId = url.searchParams.get('sessionId');
@@ -102,7 +190,7 @@ const server = createServer(async (req, res) => {
                            userInput.toLowerCase().includes('back') ||
                            userInput.toLowerCase().includes('assignment') ||
                            (lastInteraction && 
-                            (Date.now() - new Date(lastInteraction.timestamp).getTime()) > 12 * 60 * 60 * 1000); // 12+ hours ago
+                            (Date.now() - new Date(lastInteraction.timestamp).getTime()) > 12 * 60 * 60 * 1000);
 
         // Modify the user message to include context if it's a follow-up
         const contextualInput = isFollowUp && lastInteraction ? 
@@ -137,13 +225,16 @@ Then give them ONE precise action that forces them to confront their specific av
 IMPORTANT: Always end your response with an accountability assignment:
 "Your assignment: [specific micro-action]. Come back in 24 hours and tell me if you did it or what excuse you made."
 
-Your voice: Like that friend who sees through everyone's BS but cares enough to call it out. Be direct but surgical - use their own words to show them their pattern.
+Format your response like terminal output:
+> PATTERN DETECTED: [their specific pattern]
+> LIE IDENTIFIED: "[their exact self-deception]" 
+> REALITY CHECK: [brutal truth about what they're actually doing]
 
-Examples of good responses:
-- "You said 'not being able to achieve success' - notice how you made yourself the victim there? Like success is something that happens TO you instead of something you create. That's your tell. Your assignment: Write down ONE thing you could start tomorrow that would move you toward success. Come back in 24 hours and tell me if you did it or what excuse you made."
-- "The phrase 'I keep failing' tells me you're addicted to starting things you know you won't finish. It gives you the identity of 'someone who tries' without the risk of actually succeeding. Your assignment: Pick ONE unfinished project and either complete it this week or delete it entirely. Come back in 24 hours and tell me if you did it or what excuse you made."
+[Your detailed analysis in a direct, confrontational tone]
 
-Be specific to THEIR words and psychology. No generic advice about "writing lists" or "getting out of comfort zones."` 
+Your assignment: [specific action]. Come back in 24 hours and tell me if you did it or what excuse you made.
+
+Your voice: Like that friend who sees through everyone's BS but cares enough to call it out. Be direct but surgical - use their own words to show them their pattern.` 
               },
               { role: 'user', content: contextualInput }
             ],
@@ -194,16 +285,16 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
       }
     });
   } else {
-    // Serve HTML UI
+    // Serve HTML UI with new design
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(`<!DOCTYPE html>
       <html lang="en">
         <head>
           <meta charset="UTF-8">
-          <title>RealityPatch</title>
+          <title>RealityPatch - Truth Detector</title>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+          <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@600;800&display=swap" rel="stylesheet">
           <script>
             window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
           </script>
@@ -215,27 +306,62 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
         <body>
           <div class="container">
             <div class="card">
-              <h1>RealityPatch</h1>
-              <p class="subtitle">AI that exposes your self-sabotage patterns</p>
-              <textarea id="userInput" placeholder="Describe a problem you keep having - relationships, career, habits, procrastination, etc. Be specific about what you keep doing or saying to yourself..." rows="4"></textarea>
-              <button id="patchBtn">Get Your Reality Check</button>
-              <div id="output"></div>
+              <div class="header">
+                <div class="subtitle">&gt; PSYCHOLOGICAL DEBUGGER</div>
+                <h1>RealityPatch<span class="cursor">_</span></h1>
+                <div class="tagline">Exposing self-sabotage patterns</div>
+              </div>
+
+              <div class="terminal-prompt">[user@reality ~]$ describe_problem --verbose</div>
               
+              <div class="input-section">
+                <div class="input-label">Input Buffer:</div>
+                <textarea id="userInput" placeholder="Describe your recurring problem... be brutally honest about what you keep doing or telling yourself.
+
+Examples:
+• I keep starting projects but abandoning them
+• I want to start a business but I'm waiting for the perfect idea  
+• I know what I should do but I can't seem to do it
+• I always attract toxic people in relationships" rows="5"></textarea>
+              </div>
+
+              <button id="patchBtn" class="analyze-btn">
+                ANALYZE PATTERN
+              </button>
+
+              <div id="output">
+                <div class="result-container">
+                  <div class="result-header">REALITY.PATCH OUTPUT</div>
+                  <div class="result-content" id="resultContent">
+                    <!-- Results will appear here -->
+                  </div>
+                </div>
+              </div>
+
               <div class="examples">
-                <p><strong>Not sure what to ask? Try these:</strong></p>
-                <div class="example-buttons">
-                  <button class="example-btn" data-example="I keep starting projects but never finish them">
-                    Projects I abandon
-                  </button>
-                  <button class="example-btn" data-example="I want to start a business but I'm waiting for the perfect idea">
-                    Perfect idea waiting
-                  </button>
-                  <button class="example-btn" data-example="I know what I should do but I just can't seem to do it">
-                    Know but don't do
-                  </button>
-                  <button class="example-btn" data-example="I always attract the wrong kind of people in relationships">
-                    Wrong relationships
-                  </button>
+                <div class="examples-header">&gt; SAMPLE_INPUTS.TXT</div>
+                <button class="example-btn" data-example="I keep starting projects but never finish them">
+                  &gt; Projects I abandon halfway through
+                </button>
+                <button class="example-btn" data-example="I want to start a business but I'm waiting for the perfect idea">
+                  &gt; Waiting for the "perfect" business idea
+                </button>
+                <button class="example-btn" data-example="I know what I should do but I just can't seem to do it">
+                  &gt; Knowledge without action problem
+                </button>
+                <button class="example-btn" data-example="I always attract the wrong kind of people in relationships">
+                  &gt; Toxic relationship patterns
+                </button>
+              </div>
+
+              <!-- History Section -->
+              <div class="history-section" id="historySection">
+                <div class="history-header" onclick="toggleHistory()">
+                  <h3>&gt; PREVIOUS_PATCHES.LOG (<span id="historyCount">0</span>)</h3>
+                  <span id="history-toggle">&gt; Show</span>
+                </div>
+                <div class="history-items" id="history-content">
+                  <!-- History items will appear here -->
                 </div>
               </div>
             </div>
@@ -245,11 +371,13 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
             const button = document.getElementById('patchBtn');
             const textarea = document.getElementById('userInput');
             const output = document.getElementById('output');
+            const resultContent = document.getElementById('resultContent');
+            const historySection = document.getElementById('historySection');
 
-            // NEW: Session management
+            // Session management
             let sessionId = localStorage.getItem('rp-session-id');
 
-            // NEW: Load history on page load
+            // Load history on page load
             window.addEventListener('load', loadHistory);
 
             async function loadHistory() {
@@ -279,61 +407,41 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
             }
 
             function showAssignmentReminder(hoursSince) {
-              const reminderHtml = '<div id="assignment-reminder" style="background: linear-gradient(135deg, #ff6b6b20, #ffd93d20); border: 1px solid #ff6b6b30; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">' +
-                '<div style="color: #ff6b6b; font-weight: 600; margin-bottom: 8px;">⏰ Assignment Check-in</div>' +
-                '<div style="color: #666; font-size: 14px;">It\\'s been ' + hoursSince + ' hours. Did you do your assignment or do you have an excuse?</div>' +
+              const reminderHtml = '<div id="assignment-reminder" class="assignment-reminder">' +
+                '<div class="reminder-header">&gt; ASSIGNMENT_STATUS: OVERDUE</div>' +
+                '<div class="reminder-content">It\\'s been ' + hoursSince + ' hours. Did you do your assignment or do you have an excuse?</div>' +
                 '</div>';
               
-              document.querySelector('.card').insertAdjacentHTML('afterbegin', reminderHtml);
+              document.querySelector('.header').insertAdjacentHTML('afterend', reminderHtml);
             }
 
             function showHistorySection(history) {
-              const existingHistory = document.querySelector('.history-section');
-              if (existingHistory) existingHistory.remove();
+              const historyCount = document.getElementById('historyCount');
+              historyCount.textContent = history.length;
               
-              const historyHtml = '<div class="history-section" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9;">' +
-                '<div class="history-header" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 8px 0;" onclick="toggleHistory()">' +
-                  '<h3 style="font-size: 16px; color: #333; margin: 0;">🧠 Your Reality Patches (' + history.length + ')</h3>' +
-                  '<span id="history-toggle" style="color: #667eea; font-size: 14px;">▼ Show</span>' +
-                '</div>' +
-                '<div class="history-items" id="history-content" style="max-height: 0; overflow: hidden; transition: all 0.3s ease;">' +
-                '<div style="padding-top: 12px;">' +
-                history.slice(-3).reverse().map(function(item, index) {
-                  const followUpBadge = item.isFollowUp ? '<span style="background: #4ecdc4; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 8px;">FOLLOW-UP</span>' : '';
-                  return '<div style="background: #f8f9fa; border-radius: 12px; padding: 16px; margin-bottom: 12px; border-left: 3px solid #667eea;">' +
-                    '<div style="color: #666; margin-bottom: 8px; font-size: 13px; font-style: italic;">"' + item.input + '"' + followUpBadge + '</div>' +
-                    '<div style="color: #333; line-height: 1.4; font-size: 14px;">' + item.response + '</div>' +
-                    '<div style="color: #999; font-size: 11px; margin-top: 8px;">' + new Date(item.timestamp).toLocaleDateString() + '</div>' +
-                    '</div>';
-                }).join('') +
-                '</div>' +
-                '</div>' +
-                '</div>';
+              const historyContent = document.getElementById('history-content');
+              historyContent.innerHTML = history.slice(-3).reverse().map(function(item, index) {
+                const followUpBadge = item.isFollowUp ? '<span class="follow-up-badge">FOLLOW-UP</span>' : '';
+                return '<div class="history-item">' +
+                  '<div class="history-input">"' + item.input + '"' + followUpBadge + '</div>' +
+                  '<div class="history-response">' + item.response + '</div>' +
+                  '<div class="history-timestamp">' + new Date(item.timestamp).toLocaleDateString() + '</div>' +
+                  '</div>';
+              }).join('');
               
-              document.querySelector('.card').insertAdjacentHTML('beforeend', historyHtml);
+              historySection.style.display = 'block';
             }
 
             window.toggleHistory = function() {
               const content = document.getElementById('history-content');
               const toggle = document.getElementById('history-toggle');
               
-              if (content.style.maxHeight === '0px' || !content.style.maxHeight) {
-                content.style.maxHeight = 'none';
-                const scrollHeight = content.scrollHeight;
-                content.style.maxHeight = '0';
-                
-                requestAnimationFrame(() => {
-                  content.style.maxHeight = scrollHeight + 'px';
-                  content.style.paddingBottom = '12px';
-                });
-                
-                toggle.textContent = '▲ Hide';
-                toggle.style.color = '#999';
+              if (content.style.display === 'none' || !content.style.display) {
+                content.style.display = 'block';
+                toggle.textContent = '> Hide';
               } else {
-                content.style.maxHeight = '0';
-                content.style.paddingBottom = '0';
-                toggle.textContent = '▼ Show';
-                toggle.style.color = '#667eea';
+                content.style.display = 'none';
+                toggle.textContent = '> Show';
               }
             }
 
@@ -342,7 +450,6 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
               btn.addEventListener('click', () => {
                 textarea.value = btn.dataset.example;
                 textarea.focus();
-                textarea.dispatchEvent(new Event('input'));
                 
                 // Remove assignment reminder if it exists
                 const reminder = document.getElementById('assignment-reminder');
@@ -358,11 +465,11 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
             // Auto-resize textarea
             textarea.addEventListener('input', () => {
               textarea.style.height = 'auto';
-              const newHeight = Math.min(Math.max(textarea.scrollHeight, 100), 250);
+              const newHeight = Math.min(Math.max(textarea.scrollHeight, 120), 250);
               textarea.style.height = newHeight + 'px';
             });
 
-            // UPDATED: Button click with session management
+            // Button click with session management
             button.addEventListener('click', async () => {
               const text = textarea.value.trim();
               if (!text) {
@@ -376,8 +483,11 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
               }
               
               button.disabled = true;
-              button.textContent = 'Reading between the lines...';
-              output.innerHTML = '<em>🧠 Analyzing your psychology...</em>';
+              button.textContent = 'PROCESSING...';
+              
+              // Show output section and loading state
+              output.classList.add('show');
+              resultContent.innerHTML = '<div class="loading">&gt; Analyzing psychological patterns<span class="loading-dots"></span></div>';
 
               // Remove assignment reminder if it exists
               const reminder = document.getElementById('assignment-reminder');
@@ -401,7 +511,28 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
                   localStorage.setItem('rp-session-id', sessionId);
                 }
                 
-                output.innerHTML = marked.parse(data.patch);
+                // Typewriter effect for results
+                let i = 0;
+                const response = data.patch;
+                resultContent.innerHTML = '';
+                
+                const typewriter = setInterval(() => {
+                  if (i < response.length) {
+                    resultContent.innerHTML += response.charAt(i);
+                    i++;
+                  } else {
+                    clearInterval(typewriter);
+                    
+                    // Add success message after typewriter completes
+                    setTimeout(() => {
+                      const statusHtml = data.isFollowUp 
+                        ? '<div class="status-message follow-up">Progress tracking activated. Keep coming back - accountability is what separates the doers from the dreamers.</div>'
+                        : '<div class="status-message">Assignment given. Come back in 24 hours and report what you actually did.</div>';
+                      
+                      resultContent.innerHTML += statusHtml;
+                    }, 1000);
+                  }
+                }, 20);
                 
                 // Track successful patch delivery
                 if (window.va) {
@@ -411,36 +542,16 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
                   });
                 }
                 
-                // Show different messages based on follow-up status
-                if (data.isFollowUp) {
-                  setTimeout(() => {
-                    output.innerHTML += '<div style="background: linear-gradient(135deg, #4ecdc420, #45b7d120); border: 1px solid #4ecdc430; border-radius: 12px; padding: 16px; margin-top: 20px; text-align: center; font-size: 14px; color: #555;">' +
-                      '<strong style="color: #4ecdc4;">Progress tracking activated.</strong> Keep coming back - accountability is what separates the doers from the dreamers.' +
-                      '</div>';
-                  }, 1500);
-                } else if (data.historyCount >= 2) {
-                  setTimeout(() => {
-                    output.innerHTML += '<div style="background: linear-gradient(135deg, #667eea20, #764ba220); border: 1px solid #667eea30; border-radius: 12px; padding: 16px; margin-top: 20px; text-align: center; font-size: 14px; color: #555;">' +
-                      '<strong style="color: #667eea;">Assignment given.</strong> Come back in 24 hours and report what you actually did.' +
-                      '<div style="margin-top: 8px; font-size: 12px; opacity: 0.7;">Bookmark this page - your accountability partner is waiting.</div>' +
-                      '</div>';
-                  }, 2000);
-                } else {
-                  setTimeout(() => {
-                    output.innerHTML += '<div style="background: linear-gradient(135deg, #667eea20, #764ba220); border: 1px solid #667eea30; border-radius: 12px; padding: 16px; margin-top: 20px; text-align: center; font-size: 14px; color: #555;"><strong style="color: #667eea;">First patch delivered.</strong> Follow through on your assignment and come back to report.</div>';
-                  }, 2000);
-                }
-                
                 // Clear textarea after successful submission
                 textarea.value = '';
-                textarea.style.height = '100px';
+                textarea.style.height = '120px';
                 
                 // Reload history
-                setTimeout(loadHistory, 500);
+                setTimeout(loadHistory, 1000);
                 
               } catch (err) {
                 console.error(err);
-                output.innerHTML = '<p style="color: #e53e3e; background: #fff5f5; padding: 16px; border-radius: 12px; border: 1px solid #ff6b6b;">Something went wrong. Please try again.</p>';
+                resultContent.innerHTML = '<div class="error">&gt; ERROR: Connection failed. Please try again.</div>';
                 
                 // Track errors
                 if (window.va) {
@@ -448,13 +559,13 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
                 }
               } finally {
                 button.disabled = false;
-                button.textContent = 'Get Your Reality Check';
+                button.textContent = 'ANALYZE PATTERN';
               }
             });
 
-            // Enter to submit
+            // Enter to submit (Ctrl+Enter or Cmd+Enter)
             textarea.addEventListener('keydown', (e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 if (!button.disabled) {
                   button.click();
