@@ -381,29 +381,33 @@ Examples:
             window.addEventListener('load', loadHistory);
 
             async function loadHistory() {
-              if (!sessionId) return;
+              const localHistory = loadHistoryFromLocal();
               
-              try {
-                const res = await fetch('/api/history?sessionId=' + sessionId);
-                const data = await res.json();
+              if (localHistory && localHistory.length > 0) {
+                showHistorySection(localHistory);
                 
-                if (data.history && data.history.length > 0) {
-                  showHistorySection(data.history);
+                // Check if user has pending assignment
+                const lastPatch = localHistory[localHistory.length - 1];
+                if (lastPatch && lastPatch.response.includes('Your assignment:') && !lastPatch.isFollowUp) {
+                  const timeSince = Date.now() - new Date(lastPatch.timestamp).getTime();
+                  const hoursSince = Math.floor(timeSince / (1000 * 60 * 60));
                   
-                  // Check if user has pending assignment
-                  const lastPatch = data.history[data.history.length - 1];
-                  if (lastPatch && lastPatch.response.includes('Your assignment:') && !lastPatch.isFollowUp) {
-                    const timeSince = Date.now() - new Date(lastPatch.timestamp).getTime();
-                    const hoursSince = Math.floor(timeSince / (1000 * 60 * 60));
-                    
-                    if (hoursSince >= 12) {
-                      showAssignmentReminder(hoursSince);
-                    }
+                  if (hoursSince >= 12) {
+                    showAssignmentReminder(hoursSince);
                   }
                 }
-              } catch (err) {
-                console.log('No history found');
               }
+            }
+
+            // Save history to localStorage
+            function saveHistoryToLocal(historyData) {
+              localStorage.setItem('rp-history', JSON.stringify(historyData));
+            }
+
+            // Load history from localStorage
+            function loadHistoryFromLocal() {
+              const stored = localStorage.getItem('rp-history');
+              return stored ? JSON.parse(stored) : [];
             }
 
             function showAssignmentReminder(hoursSince) {
@@ -542,12 +546,27 @@ Examples:
                   });
                 }
                 
+                // Save to local storage
+                const currentHistory = loadHistoryFromLocal();
+                currentHistory.push({
+                  input: text,
+                  response: data.patch,
+                  timestamp: new Date().toISOString(),
+                  id: Date.now(),
+                  isFollowUp: data.isFollowUp
+                });
+
+                // Keep only last 10
+                if (currentHistory.length > 10) {
+                  currentHistory.shift();
+                }
+
+                saveHistoryToLocal(currentHistory);
+                showHistorySection(currentHistory);
+
                 // Clear textarea after successful submission
                 textarea.value = '';
                 textarea.style.height = '120px';
-                
-                // Reload history
-                setTimeout(loadHistory, 1000);
                 
               } catch (err) {
                 console.error(err);
