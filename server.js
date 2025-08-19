@@ -216,8 +216,8 @@ Be specific to THEIR words and psychology. No generic advice about "writing list
           <div class="container">
             <div class="card">
               <h1>RealityPatch</h1>
-              <p class="subtitle">The brutal honesty you need to hear</p>
-              <textarea id="userInput" placeholder="Describe your situation... What story are you telling yourself?" rows="4"></textarea>
+              <p class="subtitle">AI that exposes your self-sabotage patterns</p>
+              <textarea id="userInput" placeholder="Describe a problem you keep having - relationships, career, habits, procrastination, etc. Be specific about what you keep doing or saying to yourself..." rows="4"></textarea>
               <button id="patchBtn">Get Your Reality Check</button>
               <div id="output"></div>
               
