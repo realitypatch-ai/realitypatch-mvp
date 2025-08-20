@@ -434,20 +434,28 @@ Examples:
               }).join('');
               
               historySection.style.display = 'block';
+              
+              // FIX: Set initial state - history is shown by default when there's content
+              historyContent.style.display = 'block';
+              const toggle = document.getElementById('history-toggle');
+              toggle.textContent = '> Hide';
             }
 
             window.toggleHistory = function() {
-              const content = document.getElementById('history-content');
-              const toggle = document.getElementById('history-toggle');
-              
-              if (content.style.display === 'none' || !content.style.display) {
-                content.style.display = 'block';
-                toggle.textContent = '> Hide';
-              } else {
-                content.style.display = 'none';
-                toggle.textContent = '> Show';
-              }
+            const content = document.getElementById('history-content');
+            const toggle = document.getElementById('history-toggle');
+            
+            // Check actual computed display style, not just the style property
+            const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
+            
+            if (isCurrentlyVisible) {
+              content.style.display = 'none';
+              toggle.textContent = '> Show';
+            } else {
+              content.style.display = 'block';
+              toggle.textContent = '> Hide';
             }
+          }
 
             // Example buttons functionality
             document.querySelectorAll('.example-btn').forEach(btn => {
