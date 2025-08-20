@@ -419,6 +419,7 @@ Examples:
               document.querySelector('.header').insertAdjacentHTML('afterend', reminderHtml);
             }
 
+            // Updated showHistorySection function with preference checking
             function showHistorySection(history) {
               const historyCount = document.getElementById('historyCount');
               historyCount.textContent = history.length;
@@ -435,27 +436,33 @@ Examples:
               
               historySection.style.display = 'block';
               
-              // FIX: Set initial state - history is shown by default when there's content
-              historyContent.style.display = 'block';
+              // Check user preference - default to visible for first-time users
+              const savedPreference = localStorage.getItem('rp-history-visible');
+              const shouldShow = savedPreference === null ? true : savedPreference === 'true';
+              
+              historyContent.style.display = shouldShow ? 'block' : 'none';
               const toggle = document.getElementById('history-toggle');
-              toggle.textContent = '> Hide';
+              toggle.textContent = shouldShow ? '> Hide' : '> Show';
             }
-
+              
+            // Updated toggleHistory function with preference saving
             window.toggleHistory = function() {
-            const content = document.getElementById('history-content');
-            const toggle = document.getElementById('history-toggle');
-            
-            // Check actual computed display style, not just the style property
-            const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
-            
-            if (isCurrentlyVisible) {
-              content.style.display = 'none';
-              toggle.textContent = '> Show';
-            } else {
-              content.style.display = 'block';
-              toggle.textContent = '> Hide';
+              const content = document.getElementById('history-content');
+              const toggle = document.getElementById('history-toggle');
+              
+              // Check actual computed display style, not just the style property
+              const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
+              
+              if (isCurrentlyVisible) {
+                content.style.display = 'none';
+                toggle.textContent = '> Show';
+                localStorage.setItem('rp-history-visible', 'false');
+              } else {
+                content.style.display = 'block';
+                toggle.textContent = '> Hide';
+                localStorage.setItem('rp-history-visible', 'true');
+              }
             }
-          }
 
             // Example buttons functionality
             document.querySelectorAll('.example-btn').forEach(btn => {
