@@ -219,19 +219,114 @@ button:disabled {
 .history-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   cursor: pointer;
   padding: 10px 0;
+  user-select: none;
+}
+
+.history-header:hover {
+  color: var(--accent-green);
 }
 
 .history-header h3 {
   font-family: 'JetBrains Mono', monospace;
   font-size: 12px;
   color: var(--accent-green);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 400;
+}
+
+#history-toggle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.history-header:hover #history-toggle {
+  color: var(--accent-green);
 }
 
 .history-items {
   margin-top: 15px;
-  display: none;
+}
+
+.history-item {
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 15px;
+  overflow: hidden;
+}
+
+.history-input {
+  background: var(--surface-light);
+  padding: 12px 15px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.history-input::before {
+  content: '> INPUT: ';
+  color: var(--accent-red);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.follow-up-badge {
+  display: inline-block;
+  background: var(--accent-red);
+  color: white;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  margin-left: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.history-response {
+  padding: 15px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  white-space: pre-line;
+}
+
+.history-response::before {
+  content: '> OUTPUT:';
+  display: block;
+  color: var(--accent-green);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  font-size: 10px;
+}
+
+.history-timestamp {
+  background: var(--surface);
+  padding: 8px 15px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 1px solid var(--border);
+}
+
+.history-timestamp::before {
+  content: '> TIMESTAMP: ';
+  color: var(--accent-green);
+  opacity: 0.7;
 }
 
 .status-message {

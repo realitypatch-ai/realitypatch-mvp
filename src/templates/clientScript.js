@@ -65,25 +65,35 @@ function showHistorySection(history) {
   
   historySection.style.display = 'block';
   
-  // Set initial state - history is shown by default when there's content
-  historyContent.style.display = 'block';
+  // Check user's saved preference, default to visible for new users
+  const savedState = localStorage.getItem('rp-history-visible');
+  const shouldShow = savedState === null ? true : savedState === 'true';
+  
   const toggle = document.getElementById('history-toggle');
-  toggle.textContent = '> Hide';
+  if (shouldShow) {
+    historyContent.style.display = 'block';
+    toggle.textContent = '> Hide';
+  } else {
+    historyContent.style.display = 'none';
+    toggle.textContent = '> Show';
+  }
 }
 
 window.toggleHistory = function() {
   const content = document.getElementById('history-content');
   const toggle = document.getElementById('history-toggle');
   
-  // Check actual computed display style, not just the style property
+  // Check actual computed display style
   const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
   
   if (isCurrentlyVisible) {
     content.style.display = 'none';
     toggle.textContent = '> Show';
+    localStorage.setItem('rp-history-visible', 'false');
   } else {
     content.style.display = 'block';
     toggle.textContent = '> Hide';
+    localStorage.setItem('rp-history-visible', 'true');
   }
 }
 
