@@ -339,7 +339,6 @@ button:disabled {
   color: var(--accent-green);
 }
 
-// Add this to your fallbackCSS.js
 /* Creator Footer - Outside main card for clean UX */
 .creator-footer {
     text-align: center;
@@ -392,5 +391,10 @@ button:disabled {
 .creator-tagline {
     opacity: 0.7;
     font-style: italic;
+}
+
+@media (max-width: 640px) {
+  .card { padding: 30px 25px; }
+  h1 { font-size: 2rem; }
 }
 `;
