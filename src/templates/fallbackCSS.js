@@ -339,60 +339,6 @@ button:disabled {
   color: var(--accent-green);
 }
 
-/* Creator Footer - Outside main card for clean UX */
-.creator-footer {
-    text-align: center;
-    margin-top: 30px;
-    padding: 20px 0;
-    opacity: 0.8;
-    transition: opacity 0.3s ease;
-}
-
-.creator-footer:hover {
-    opacity: 1;
-}
-
-.creator-info {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-}
-
-.creator-name {
-    color: var(--text-primary);
-    font-weight: 700;
-}
-
-.creator-contact {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.contact-link {
-    color: var(--accent-red);
-    text-decoration: none;
-    font-weight: 700;
-    transition: color 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.contact-link:hover {
-    color: var(--accent-green);
-}
-
-.creator-tagline {
-    opacity: 0.7;
-    font-style: italic;
-}
-
 @media (max-width: 640px) {
   .card { padding: 30px 25px; }
   h1 { font-size: 2rem; }
