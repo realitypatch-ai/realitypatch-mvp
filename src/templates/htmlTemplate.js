@@ -1,4 +1,4 @@
-// src/templates/htmlTemplate.js - HTML template generation
+// src/templates/htmlTemplate.js - HTML template generation with contact footer
 import { getFallbackCSS } from './fallbackCSS.js';
 import { getClientScript } from './clientScript.js';
 
@@ -81,7 +81,18 @@ Examples:
             <!-- History items will appear here -->
           </div>
         </div>
+
       </div>
+
+      <!-- Creator Footer - Outside main card for clean UX -->
+      <div class="creator-footer">
+        <div class="creator-info">Built by <span class="creator-name">Falah Faizal</span></div>
+        <div class="creator-contact">
+          <a href="mailto:realitypatchai@gmail.com" class="contact-link">EMAIL</a>
+          <span class="creator-tagline">Questions? Feedback? Found a bug in reality?</span>
+        </div>
+      </div>
+
     </div>
 
     <script>
