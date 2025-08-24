@@ -1,4 +1,4 @@
-// src/templates/clientScript.js - Client-side JavaScript with FIXED assignment completion tracking
+// src/templates/clientScript.js - Client-side JavaScript with FIXED credit system integration
 export const getClientScript = () => `
 const button = document.getElementById('patchBtn');
 const textarea = document.getElementById('userInput');
@@ -25,6 +25,141 @@ async function loadHistory() {
       showAssignmentReminder(pendingAssignments);
     }
   }
+  
+  // FIXED: Update credits display on page load
+  updateCreditsDisplay();
+}
+
+// Credit management functions
+function getExtraCredits() {
+  const credits = localStorage.getItem('rp-extra-credits');
+  const expiry = localStorage.getItem('rp-extra-credits-expiry');
+  
+  if (!credits || !expiry) return 0;
+  
+  // Check if credits have expired
+  if (Date.now() > parseInt(expiry)) {
+    localStorage.removeItem('rp-extra-credits');
+    localStorage.removeItem('rp-extra-credits-expiry');
+    return 0;
+  }
+  
+  return parseInt(credits) || 0;
+}
+
+function useExtraCredit() {
+  let credits = getExtraCredits();
+  if (credits > 0) {
+    credits--;
+    localStorage.setItem('rp-extra-credits', credits.toString());
+    console.log('Extra credit used. Remaining: ' + credits);
+    return true;
+  }
+  return false;
+}
+
+function getDailyUsage() {
+  const today = new Date().toDateString();
+  const stored = localStorage.getItem('rp-daily-usage');
+  
+  if (!stored) return 0;
+  
+  try {
+    const usage = JSON.parse(stored);
+    if (usage.date === today) {
+      return usage.count || 0;
+    }
+  } catch (e) {
+    console.log('Error parsing daily usage:', e);
+  }
+  
+  return 0;
+}
+
+function incrementDailyUsage() {
+  const today = new Date().toDateString();
+  const currentUsage = getDailyUsage();
+  
+  const newUsage = {
+    date: today,
+    count: currentUsage + 1
+  };
+  
+  localStorage.setItem('rp-daily-usage', JSON.stringify(newUsage));
+  console.log('Daily usage incremented to:', newUsage.count);
+}
+
+function updateCreditsDisplay() {
+  const extraCredits = getExtraCredits();
+  
+  // Add credits counter to UI
+  let creditsDisplay = document.getElementById('credits-display');
+  if (!creditsDisplay && extraCredits > 0) {
+    creditsDisplay = document.createElement('div');
+    creditsDisplay.id = 'credits-display';
+    creditsDisplay.className = 'credits-display';
+    creditsDisplay.innerHTML = 
+      '<div class="credits-header">&gt; EXTRA_CREDITS.AVAILABLE</div>' +
+      '<div class="credits-count">' + extraCredits + ' patches remaining</div>';
+    
+    // Insert after the header
+    const header = document.querySelector('.header');
+    header.insertAdjacentElement('afterend', creditsDisplay);
+  } else if (creditsDisplay && extraCredits > 0) {
+    creditsDisplay.querySelector('.credits-count').textContent = extraCredits + ' patches remaining';
+  } else if (creditsDisplay && extraCredits === 0) {
+    creditsDisplay.remove();
+  }
+}
+
+function showUpgradeMessage() {
+  const upgradeHtml = 
+    '<div class="upgrade-message">' +
+    '<div class="upgrade-header">&gt; DAILY_LIMIT_REACHED</div>' +
+    '<div class="upgrade-content">' +
+    '<p>You have used your 10 daily reality checks.</p>' +
+    '<p>Ready for more brutal honesty?</p>' +
+    '<div class="upgrade-options">' +
+    '<a href="https://buy.stripe.com/fZu7sNccYevN7bR8ON3wQ00" class="upgrade-btn-primary">' +
+    'Get 10 More Patches - $4.99' +
+    '</a>' +
+    '<div class="reset-timer">' +
+    'Next free patches in: <span id="reset-countdown">calculating...</span>' +
+    '</div>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+  
+  resultContent.innerHTML = upgradeHtml;
+  output.classList.add('show');
+  
+  // Start countdown to midnight reset
+  startResetCountdown();
+}
+
+function startResetCountdown() {
+  const countdownEl = document.getElementById('reset-countdown');
+  if (!countdownEl) return;
+  
+  function updateCountdown() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    
+    const timeLeft = tomorrow.getTime() - now.getTime();
+    const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+    
+    countdownEl.textContent = hours + 'h ' + minutes + 'm ' + seconds + 's';
+  }
+  
+  updateCountdown();
+  const timer = setInterval(updateCountdown, 1000);
+  
+  // Clear timer when user navigates away
+  window.addEventListener('beforeunload', () => clearInterval(timer));
 }
 
 // Helper function to get pending assignments from local history (incomplete only)
@@ -62,7 +197,7 @@ function showAssignmentReminder(pendingAssignments) {
   let reminderContent;
   if (pendingAssignments.length === 1) {
     const assignment = pendingAssignments[0];
-    reminderContent = 'It\\'s been ' + assignment.hoursSince + ' hours. Did you complete your assignment or do you have an excuse?';
+    reminderContent = 'It has been ' + assignment.hoursSince + ' hours. Did you complete your assignment or do you have an excuse?';
   } else {
     const oldestHours = Math.max(...pendingAssignments.map(a => a.hoursSince));
     reminderContent = 'You have ' + pendingAssignments.length + ' overdue assignments. The oldest is ' + oldestHours + ' hours old. Time to report back!';
@@ -142,14 +277,14 @@ window.toggleHistory = function() {
 // FIXED: Enhanced function to mark assignment as completed in local storage
 function markAssignmentCompletedLocally(completedAssignmentId) {
   if (!completedAssignmentId || completedAssignmentId === 'unclear' || completedAssignmentId === 'mass_unclear') {
-    console.log('⚠️ No valid assignment ID to complete:', completedAssignmentId);
+    console.log('No valid assignment ID to complete:', completedAssignmentId);
     return;
   }
   
-  console.log('🎯 Looking for assignment to complete:', completedAssignmentId);
+  console.log('Looking for assignment to complete:', completedAssignmentId);
   
   const currentHistory = loadHistoryFromLocal();
-  console.log('📚 Current history count:', currentHistory.length);
+  console.log('Current history count:', currentHistory.length);
   
   // Find assignment by multiple methods since server uses different ID system
   let assignment = null;
@@ -157,7 +292,7 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
   // Method 1: Direct ID match
   assignment = currentHistory.find(item => item.id === completedAssignmentId);
   if (assignment) {
-    console.log('✅ Found by direct ID match');
+    console.log('Found by direct ID match');
   }
   
   // Method 2: Timestamp match (server sometimes uses timestamp as ID)
@@ -166,7 +301,7 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
       item.timestamp && new Date(item.timestamp).getTime() === completedAssignmentId
     );
     if (assignment) {
-      console.log('✅ Found by timestamp match');
+      console.log('Found by timestamp match');
     }
   }
   
@@ -180,15 +315,15 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
       !item.completed
     );
     
-    console.log('🔍 Found pending assignments:', pendingAssignments.length);
+    console.log('Found pending assignments:', pendingAssignments.length);
     pendingAssignments.forEach((item, idx) => {
-      console.log(\`   \${idx + 1}. ID: \${item.id}, Timestamp: \${item.timestamp}, Input: "\${item.input.substring(0, 40)}..."\`);
+      console.log('Assignment ' + (idx + 1) + '. ID: ' + item.id + ', Timestamp: ' + item.timestamp + ', Input: "' + item.input.substring(0, 40) + '..."');
     });
     
     if (pendingAssignments.length === 1) {
       // Only one pending assignment, that must be it
       assignment = pendingAssignments[0];
-      console.log('✅ Using single pending assignment');
+      console.log('Using single pending assignment');
     } else if (pendingAssignments.length > 1) {
       // Multiple pending - try to find the one most likely to be completed
       // Sort by timestamp (oldest first, most likely to be completed first)
@@ -196,12 +331,12 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
       assignment = sortedPending[0];
-      console.log('✅ Using oldest pending assignment as best guess');
+      console.log('Using oldest pending assignment as best guess');
     }
   }
   
   if (assignment) {
-    console.log('🎯 Marking assignment as completed:', {
+    console.log('Marking assignment as completed:', {
       id: assignment.id,
       input: assignment.input.substring(0, 50) + '...',
       timestamp: assignment.timestamp,
@@ -215,21 +350,21 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
     // Refresh the history display to show updated badges
     showHistorySection(currentHistory);
     
-    console.log('✅ Assignment marked as completed locally');
+    console.log('Assignment marked as completed locally');
     
     // Remove assignment reminder if it exists
     const reminder = document.getElementById('assignment-reminder');
     if (reminder) {
       reminder.remove();
-      console.log('🗑️ Removed assignment reminder');
+      console.log('Removed assignment reminder');
     }
     
   } else {
-    console.log('❌ Could not find assignment to complete with ID:', completedAssignmentId);
-    console.log('📋 Available history items:');
+    console.log('Could not find assignment to complete with ID:', completedAssignmentId);
+    console.log('Available history items:');
     currentHistory.forEach((item, idx) => {
-      console.log(\`   \${idx + 1}. ID: \${item.id}, Timestamp: \${new Date(item.timestamp).getTime()}, Input: "\${item.input?.substring(0, 30)}..."\`, {
-        hasAssignment: item.response?.includes('Your assignment:'),
+      console.log('Item ' + (idx + 1) + '. ID: ' + item.id + ', Timestamp: ' + new Date(item.timestamp).getTime() + ', Input: "' + (item.input ? item.input.substring(0, 30) : 'N/A') + '..."', {
+        hasAssignment: item.response ? item.response.includes('Your assignment:') : false,
         isFollowUp: item.isFollowUp,
         completed: item.completed
       });
@@ -261,7 +396,7 @@ textarea.addEventListener('input', () => {
   textarea.style.height = newHeight + 'px';
 });
 
-// FIXED: Enhanced button click with proper completion tracking
+// FIXED: Enhanced button click with proper credit system integration
 button.addEventListener('click', async () => {
   const text = textarea.value.trim();
   if (!text) {
@@ -269,9 +404,22 @@ button.addEventListener('click', async () => {
     return;
   }
   
+  // FIXED: Check daily limit and extra credits BEFORE making request
+  const dailyUsage = getDailyUsage();
+  const extraCredits = getExtraCredits();
+  
+  if (dailyUsage >= 10 && extraCredits === 0) {
+    // Show upgrade message instead of processing
+    showUpgradeMessage();
+    return;
+  }
+  
   // Track reality patch request
   if (window.va) {
-    window.va('track', 'RealityPatchRequest', { inputLength: text.length });
+    window.va('track', 'RealityPatchRequest', { 
+      inputLength: text.length,
+      usingExtraCredit: dailyUsage >= 10
+    });
   }
   
   button.disabled = true;
@@ -292,15 +440,28 @@ button.addEventListener('click', async () => {
         'Content-Type': 'application/json',
         'X-Session-ID': sessionId || ''
       },
-      body: JSON.stringify({ userInput: text })
+      body: JSON.stringify({ 
+        userInput: text,
+        usingExtraCredit: dailyUsage >= 10
+      })
     });
 
     const data = await res.json();
-    console.log('🔗 Server response:', data);
+    console.log('Server response:', data);
     
     // Handle error responses before processing success
     if (!res.ok || data.patch.includes('Server error') || data.patch.includes('AI service temporarily unavailable')) {
       throw new Error(data.patch || 'Server error occurred');
+    }
+    
+    // FIXED: Handle credit usage and daily count tracking
+    if (dailyUsage >= 10 && extraCredits > 0) {
+      // Using extra credit
+      useExtraCredit();
+      updateCreditsDisplay();
+    } else {
+      // Using regular daily allowance
+      incrementDailyUsage();
     }
     
     // Store session ID
@@ -310,9 +471,8 @@ button.addEventListener('click', async () => {
     }
     
     // CRITICAL FIX: Mark assignment as completed BEFORE saving new interaction
-    // This ensures the completion happens before we update the display
     if (data.completedAssignmentId) {
-      console.log('🎯 Server detected completed assignment:', data.completedAssignmentId);
+      console.log('Server detected completed assignment:', data.completedAssignmentId);
       markAssignmentCompletedLocally(data.completedAssignmentId);
     }
     
@@ -379,7 +539,7 @@ button.addEventListener('click', async () => {
     }
     
   } catch (err) {
-    console.error('❌ Request failed:', err);
+    console.error('Request failed:', err);
     resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + err.message + '</div>';
     
     // Track errors

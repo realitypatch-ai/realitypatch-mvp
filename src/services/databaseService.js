@@ -84,16 +84,21 @@ export class DatabaseService {
     }
   }
 
-  // Add interaction to user history
+  // FIXED: Add interaction to user history with consistent ID handling
   static async addInteraction(userId, interaction) {
     const userData = await this.getUserData(userId);
     
-    userData.history.push({
+    // Use provided ID or generate timestamp-based ID
+    const interactionId = interaction.id || Date.now();
+    
+    const newInteraction = {
       ...interaction,
       timestamp: getUTCTimestamp(),
-      id: Date.now(),
+      id: interactionId, // Use consistent ID
       completed: false // Add completion tracking
-    });
+    };
+    
+    userData.history.push(newInteraction);
 
     // Keep only last N interactions using config value
     if (userData.history.length > DATABASE_CONFIG.maxHistoryPerUser) {
@@ -112,22 +117,84 @@ export class DatabaseService {
     return userData;
   }
 
-  // Mark assignment as completed
+  // FIXED: Enhanced mark assignment as completed with better ID matching
   static async markAssignmentCompleted(userId, assignmentId) {
     try {
+      console.log('🎯 Attempting to mark assignment completed:', {
+        userId: userId.substring(0, 20) + '...',
+        assignmentId: assignmentId
+      });
+      
       const userData = await this.getUserData(userId);
-      const assignment = userData.history.find(item => 
-        item.id === assignmentId || 
-        (item.timestamp && new Date(item.timestamp).getTime() === assignmentId)
-      );
+      console.log('📚 User history count:', userData.history.length);
+      
+      // Try multiple matching strategies
+      let assignment = null;
+      
+      // Strategy 1: Direct ID match (number to number comparison)
+      assignment = userData.history.find(item => {
+        const match = item.id === assignmentId || item.id === String(assignmentId) || String(item.id) === String(assignmentId);
+        if (match) {
+          console.log('✅ Found by direct ID match:', { itemId: item.id, searchId: assignmentId });
+        }
+        return match;
+      });
+      
+      // Strategy 2: Timestamp-based matching
+      if (!assignment) {
+        assignment = userData.history.find(item => {
+          if (!item.timestamp) return false;
+          const itemTimestamp = new Date(item.timestamp).getTime();
+          const match = itemTimestamp === assignmentId || String(itemTimestamp) === String(assignmentId);
+          if (match) {
+            console.log('✅ Found by timestamp match:', { itemTimestamp, searchId: assignmentId });
+          }
+          return match;
+        });
+      }
+      
+      // Strategy 3: Find most recent uncompleted assignment with an assignment
+      if (!assignment) {
+        const uncompletedAssignments = userData.history
+          .filter(item => 
+            item.response && 
+            item.response.toLowerCase().includes('your assignment:') &&
+            !item.isFollowUp &&
+            !item.completed
+          )
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Most recent first
+        
+        if (uncompletedAssignments.length > 0) {
+          assignment = uncompletedAssignments[0];
+          console.log('✅ Found most recent uncompleted assignment as fallback');
+        }
+      }
       
       if (assignment) {
+        console.log('🎯 Marking assignment as completed:', {
+          id: assignment.id,
+          input: assignment.input?.substring(0, 30) + '...',
+          timestamp: assignment.timestamp,
+          wasCompleted: assignment.completed
+        });
+        
         assignment.completed = true;
         assignment.completedAt = getUTCTimestamp();
-        await this.saveUserData(userId, userData);
+        
+        const saveSuccess = await this.saveUserData(userId, userData);
+        console.log('💾 Save result:', saveSuccess);
+        
         return true;
+      } else {
+        console.log('❌ Could not find assignment to complete with ID:', assignmentId);
+        console.log('📋 Available assignments:');
+        userData.history
+          .filter(item => item.response && item.response.toLowerCase().includes('your assignment:'))
+          .forEach((item, idx) => {
+            console.log(`   ${idx + 1}. ID: ${item.id}, Timestamp: ${new Date(item.timestamp).getTime()}, Input: "${item.input?.substring(0, 30)}...", Completed: ${item.completed}`);
+          });
+        return false;
       }
-      return false;
     } catch (error) {
       console.error('Mark assignment completed error:', error);
       return false;

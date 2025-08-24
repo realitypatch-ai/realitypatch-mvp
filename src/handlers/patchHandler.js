@@ -1,4 +1,4 @@
-// src/handlers/patchHandler.js - Handle patch requests with assignment completion tracking
+// src/handlers/patchHandler.js - FIXED Handle patch requests with assignment completion tracking
 import { AIService } from '../services/aiService.js';
 import { DatabaseService } from '../services/databaseService.js';
 import { DATABASE_CONFIG } from '../config.js';
@@ -37,7 +37,7 @@ export const handlePatchRequest = async (req, res) => {
       // Improved follow-up detection
       const isFollowUp = checkIsFollowUp(userInput, lastInteraction);
       
-      // Check for assignment completion indicators
+      // Check for assignment completion indicators - FIXED to return consistent ID
       let completedAssignmentId = null;
       if (isFollowUp) {
         completedAssignmentId = checkAssignmentCompletion(userInput, userData);
@@ -69,18 +69,20 @@ export const handlePatchRequest = async (req, res) => {
       // Generate AI response
       const patch = await AIService.generatePatch(contextualInput);
 
-      // Mark assignment as completed if detected
+      // FIXED: Mark assignment as completed BEFORE adding new interaction
       if (completedAssignmentId && completedAssignmentId !== 'unclear' && completedAssignmentId !== 'mass_unclear') {
-        await DatabaseService.markAssignmentCompleted(userId, completedAssignmentId);
-        console.log('✅ Marked assignment as completed:', completedAssignmentId);
+        const success = await DatabaseService.markAssignmentCompleted(userId, completedAssignmentId);
+        console.log('✅ Assignment completion result:', { success, assignmentId: completedAssignmentId });
       }
 
-      // Save interaction to database
+      // FIXED: Save interaction with consistent timestamp-based ID
+      const newInteractionTimestamp = Date.now();
       const updatedUserData = await DatabaseService.addInteraction(userId, {
         input: userInput,
         response: patch,
         isFollowUp: isFollowUp,
-        completedAssignmentId: completedAssignmentId
+        completedAssignmentId: completedAssignmentId,
+        id: newInteractionTimestamp // CRITICAL: Use same timestamp as ID
       });
 
       res.writeHead(200, { 
@@ -92,7 +94,7 @@ export const handlePatchRequest = async (req, res) => {
         sessionId: userId, 
         historyCount: updatedUserData.history.length,
         isFollowUp,
-        completedAssignmentId,
+        completedAssignmentId, // This now matches what client expects
         usage: {
           count: updatedUserData.usage.count,
           remaining: Math.max(0, DATABASE_CONFIG.dailyRequestLimit - updatedUserData.usage.count)
@@ -200,7 +202,7 @@ function checkIsFollowUp(userInput, lastInteraction) {
   return result;
 }
 
-// Enhanced assignment completion logic
+// FIXED: Enhanced assignment completion logic with better ID matching
 function checkAssignmentCompletion(userInput, userData) {
   const userInputLower = userInput.toLowerCase();
   
@@ -264,11 +266,37 @@ function checkAssignmentCompletion(userInput, userData) {
   
   if (pendingAssignments.length === 1) {
     // Only one pending assignment, assume they completed it
+    console.log('🎯 Single pending assignment found:', {
+      id: pendingAssignments[0].id,
+      timestamp: pendingAssignments[0].timestamp,
+      input: pendingAssignments[0].input.substring(0, 30) + '...'
+    });
     return pendingAssignments[0].id;
   }
   
-  // Multiple pending assignments - try to match based on content
-  // Look for keywords that might indicate which assignment
+  // FIXED: Multiple pending assignments - improved matching logic
+  console.log('🔍 Multiple pending assignments, trying to match:', pendingAssignments.length);
+  
+  // Try timestamp-based matching first (most reliable)
+  const timestampMatch = pendingAssignments.find(assignment => {
+    // Check if user mentioned a time reference that could match
+    const assignmentDate = new Date(assignment.timestamp);
+    const daysDiff = Math.floor((Date.now() - assignmentDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Look for time references in user input
+    if (userInputLower.includes('yesterday') && daysDiff === 1) return true;
+    if (userInputLower.includes('today') && daysDiff === 0) return true;
+    if (userInputLower.includes('earlier') && daysDiff <= 1) return true;
+    
+    return false;
+  });
+  
+  if (timestampMatch) {
+    console.log('✅ Found timestamp-based match');
+    return timestampMatch.id;
+  }
+  
+  // Content-based matching as fallback
   const assignmentKeywords = [
     { keywords: ['wrote down', 'writing', 'list', 'traits', 'behaviors', 'business ideas', 'three ideas', 'ideas'], type: 'writing' },
     { keywords: ['worked on', 'spent time', 'dedicated', 'project', 'outline', 'scheduled', 'planned'], type: 'project' },
@@ -292,14 +320,20 @@ function checkAssignmentCompletion(userInput, userData) {
         );
         
         if (hasMatchInAssignment) {
+          console.log('✅ Found content-based match');
           return assignment.id;
         }
       }
     }
   }
   
-  // If we can't determine which assignment, return 'unclear'
-  return 'unclear';
+  // If still no match, use oldest pending assignment (most likely to be completed)
+  const oldestAssignment = pendingAssignments.sort((a, b) => 
+    new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  )[0];
+  
+  console.log('✅ Using oldest pending assignment as fallback');
+  return oldestAssignment.id;
 }
 
 // Enhanced UI feedback for unclear completions
