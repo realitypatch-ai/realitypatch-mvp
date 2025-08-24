@@ -47,14 +47,13 @@ export const handleUserDataRequest = async (req, res) => {
   }
 };
 
-// Migration handler for legacy localStorage data
+// Fixed userDataHandler.js migration section
 export const handleMigrationRequest = async (req, res) => {
   let body = '';
   req.on('data', chunk => { body += chunk; });
 
   req.on('end', async () => {
     try {
-      const { history, dailyUsage, extraCredits, creditsExpiry } = JSON.parse(body);
       const sessionId = req.headers['x-session-id'];
 
       if (!sessionId) {
@@ -63,10 +62,32 @@ export const handleMigrationRequest = async (req, res) => {
         return;
       }
 
+      // Parse the request body
+      let legacyData;
+      try {
+        legacyData = JSON.parse(body);
+      } catch (parseError) {
+        console.error('Failed to parse migration request body:', parseError);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid JSON in request body' }));
+        return;
+      }
+
+      const { history, dailyUsage, extraCredits, creditsExpiry } = legacyData;
+
       console.log('Processing data migration for session:', sessionId.substring(0, 20) + '...');
+      console.log('Migration data received:', {
+        historyCount: history?.length || 0,
+        extraCredits: extraCredits || 0,
+        dailyUsageCount: dailyUsage?.count || 0
+      });
 
       // Get existing user data
       const userData = await DatabaseService.getUserData(sessionId);
+
+      // CRITICAL FIX: Check existing credits FIRST before migration
+      const existingCredits = await DatabaseService.getUserCredits(sessionId);
+      console.log('Existing credits before migration:', existingCredits.amount);
 
       // Migrate history if provided and doesn't exist
       if (history && history.length > 0 && (!userData.history || userData.history.length === 0)) {
@@ -74,11 +95,8 @@ export const handleMigrationRequest = async (req, res) => {
         console.log('Migrated history items:', history.length);
       }
 
-      // Migrate extra credits if provided AND user has no existing credits
+      // FIXED: Only migrate credits if user has NO existing credits
       if (extraCredits > 0) {
-        const existingCredits = await DatabaseService.getUserCredits(sessionId);
-        
-        // Only migrate if user currently has no credits (prevents double-counting)
         if (existingCredits.amount === 0) {
           await DatabaseService.addExtraCredits(sessionId, extraCredits, creditsExpiry);
           console.log('Migrated extra credits:', extraCredits);
@@ -87,21 +105,23 @@ export const handleMigrationRequest = async (req, res) => {
         }
       }
 
-      // REPLACE the daily usage migration section with:
       // Migrate daily usage if provided
       if (dailyUsage && dailyUsage.count > 0) {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-        // Use dailyUsage.lastReset if available, otherwise check if it's from today
+        const today = new Date().toISOString().split('T')[0];
         const migrationDate = dailyUsage.lastReset || dailyUsage.date;
         
         if (migrationDate === today || !userData.usage.lastReset) {
           userData.usage.count = Math.max(userData.usage.count, dailyUsage.count);
           userData.usage.lastReset = today;
+          console.log('Migrated daily usage:', dailyUsage.count);
         }
       }
 
       // Save migrated data
-      await DatabaseService.saveUserData(sessionId, userData);
+      const saveResult = await DatabaseService.saveUserData(sessionId, userData);
+      if (!saveResult) {
+        throw new Error('Failed to save migrated data to database');
+      }
 
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ 
@@ -115,8 +135,15 @@ export const handleMigrationRequest = async (req, res) => {
 
     } catch (error) {
       console.error('Migration handler error:', error);
+      console.error('Error stack:', error.stack);
+      
+      // Return detailed error for debugging
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Migration failed' }));
+      res.end(JSON.stringify({ 
+        error: 'Migration failed',
+        details: error.message,
+        stack: error.stack
+      }));
     }
   });
 };

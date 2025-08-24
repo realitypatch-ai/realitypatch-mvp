@@ -307,11 +307,18 @@ async function migrateLegacyData() {
     
     if (legacyData.history.length > 0 || legacyData.extraCredits > 0) {
       await ServerDataService.migrateLegacyData(sessionId, legacyData);
-      ClientDataService.clearLegacyData();
+      ClientDataService.clearLegacyData(); // Only clear on success
       console.log('Migration completed successfully');
     }
   } catch (error) {
-    console.error('Migration failed, keeping localStorage data:', error);
+    console.error('Migration failed:', error);
+    
+    // CRITICAL: Clear localStorage even on failure to prevent loop
+    // User can manually re-enter data if needed
+    if (error.message.includes('500')) {
+      console.log('Server error detected, clearing localStorage to prevent loop');
+      ClientDataService.clearLegacyData();
+    }
   }
 }
 
