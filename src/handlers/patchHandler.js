@@ -1,4 +1,4 @@
-// src/handlers/patchHandler.js - FIXED Handle patch requests with assignment completion tracking
+// src/handlers/patchHandler.js - Handle patch requests with assignment completion tracking
 import { AIService } from '../services/aiService.js';
 import { DatabaseService } from '../services/databaseService.js';
 import { DATABASE_CONFIG } from '../config.js';
@@ -17,13 +17,18 @@ export const handlePatchRequest = async (req, res) => {
         userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
-      // Check usage limits using config value
+      // Check usage limits - now includes extra credits
       const usageCheck = await DatabaseService.checkUsageLimit(userId, DATABASE_CONFIG.dailyRequestLimit);
-      
-      if (!usageCheck.allowed) {
+      const extraCredits = await DatabaseService.getUserCredits(userId);
+
+      const canUseDaily = usageCheck.allowed;
+      const canUseExtra = extraCredits.amount > 0;
+      const willUseExtra = !canUseDaily && canUseExtra;
+
+      if (!canUseDaily && !canUseExtra) {
         res.writeHead(429, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ 
-          patch: `Daily limit reached (${usageCheck.limit} requests). You've used ${usageCheck.count} requests today. Try again tomorrow or upgrade for unlimited access.`,
+          patch: `Daily limit reached (${usageCheck.limit} requests). You've used ${usageCheck.count} requests today. Try again tomorrow or get extra patches.`,
           limitReached: true,
           usage: usageCheck
         }));
@@ -69,6 +74,15 @@ export const handlePatchRequest = async (req, res) => {
       // Generate AI response
       const patch = await AIService.generatePatch(contextualInput);
 
+      // Deduct credit if using extra
+      if (willUseExtra) {
+        const creditResult = await DatabaseService.useExtraCredit(userId);
+        if (!creditResult.success) {
+          throw new Error('Failed to use extra credit');
+        }
+        console.log('Used extra credit, remaining:', creditResult.remaining);
+      }
+
       // FIXED: Mark assignment as completed BEFORE adding new interaction
       if (completedAssignmentId && completedAssignmentId !== 'unclear' && completedAssignmentId !== 'mass_unclear') {
         const success = await DatabaseService.markAssignmentCompleted(userId, completedAssignmentId);
@@ -95,6 +109,7 @@ export const handlePatchRequest = async (req, res) => {
         historyCount: updatedUserData.history.length,
         isFollowUp,
         completedAssignmentId, // This now matches what client expects
+        userData: updatedUserData, // ADDED: Missing userData field
         usage: {
           count: updatedUserData.usage.count,
           remaining: Math.max(0, DATABASE_CONFIG.dailyRequestLimit - updatedUserData.usage.count)
@@ -125,7 +140,7 @@ function getPendingAssignments(userData) {
     .slice(-5); // Only consider last 5 assignments to avoid overwhelming context
 }
 
-// Improved follow-up detection (UTC-aware) - RESTORED FUNCTION
+// Improved follow-up detection (UTC-aware)
 function checkIsFollowUp(userInput, lastInteraction) {
   if (!lastInteraction) {
     console.log('❌ No last interaction found');

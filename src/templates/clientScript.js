@@ -1,5 +1,242 @@
-// src/templates/clientScript.js - Client-side JavaScript with demo section handling
+// src/templates/clientScript.js - Complete client-side JavaScript
 export const getClientScript = () => `
+// ClientDataService implementation (inline)
+class ClientDataService {
+  static SESSION_KEY = 'rp-session-id';
+  static PREFERENCES_KEY = 'rp-preferences';
+  static CACHE_KEY = 'rp-cache';
+
+  static safeGet(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      console.warn('localStorage get failed:', key);
+      return null;
+    }
+  }
+
+  static safeSet(key, value) {
+    try {
+      localStorage.setItem(key, value);
+      return true;
+    } catch (error) {
+      console.warn('localStorage set failed:', key);
+      return false;
+    }
+  }
+
+  static safeRemove(key) {
+    try {
+      localStorage.removeItem(key);
+      return true;
+    } catch (error) {
+      console.warn('localStorage remove failed:', key);
+      return false;
+    }
+  }
+
+  static getOrCreateSessionId() {
+    let sessionId = this.safeGet(this.SESSION_KEY);
+    
+    if (!sessionId) {
+      sessionId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      this.safeSet(this.SESSION_KEY, sessionId);
+    }
+    
+    return sessionId;
+  }
+
+  static getPreferences() {
+    try {
+      const stored = this.safeGet(this.PREFERENCES_KEY);
+      return stored ? JSON.parse(stored) : { historyVisible: true };
+    } catch (error) {
+      return { historyVisible: true };
+    }
+  }
+
+  static savePreferences(preferences) {
+    try {
+      const current = this.getPreferences();
+      const updated = Object.assign({}, current, preferences);
+      this.safeSet(this.PREFERENCES_KEY, JSON.stringify(updated));
+    } catch (error) {
+      console.warn('Cannot save preferences');
+    }
+  }
+
+  static cacheData(key, data, expiryMinutes) {
+    expiryMinutes = expiryMinutes || 30;
+    try {
+      const cacheItem = {
+        data: data,
+        expiry: Date.now() + (expiryMinutes * 60 * 1000),
+        timestamp: Date.now()
+      };
+      this.safeSet('cache_' + key, JSON.stringify(cacheItem));
+    } catch (error) {
+      console.warn('Cannot cache data');
+    }
+  }
+
+  static getCachedData(key) {
+    try {
+      const stored = this.safeGet('cache_' + key);
+      if (!stored) return null;
+      
+      const item = JSON.parse(stored);
+      if (Date.now() < item.expiry) {
+        return item.data;
+      }
+      
+      this.safeRemove('cache_' + key);
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  static hasLegacyData() {
+    return !!(this.safeGet('rp-history') || 
+              this.safeGet('rp-daily-usage') || 
+              this.safeGet('rp-extra-credits'));
+  }
+
+  static getLegacyData() {
+    try {
+      const history = JSON.parse(this.safeGet('rp-history') || '[]');
+      const dailyUsage = JSON.parse(this.safeGet('rp-daily-usage') || '{}');
+      const extraCredits = parseInt(this.safeGet('rp-extra-credits') || '0');
+      const creditsExpiry = this.safeGet('rp-extra-credits-expiry');
+      
+      return { history: history, dailyUsage: dailyUsage, extraCredits: extraCredits, creditsExpiry: creditsExpiry };
+    } catch (error) {
+      return { history: [], dailyUsage: {}, extraCredits: 0, creditsExpiry: null };
+    }
+  }
+
+  static clearLegacyData() {
+    this.safeRemove('rp-history');
+    this.safeRemove('rp-daily-usage');
+    this.safeRemove('rp-extra-credits');
+    this.safeRemove('rp-extra-credits-expiry');
+    this.safeRemove('rp-history-visible');
+  }
+}
+
+// ServerDataService implementation (inline)
+class ServerDataService {
+  static async getUserData(sessionId) {
+    try {
+      const response = await fetch('/api/user-data?sessionId=' + sessionId, {
+        headers: { 'X-Session-ID': sessionId }
+      });
+      
+      if (!response.ok) throw new Error('Server error: ' + response.status);
+      
+      const data = await response.json();
+      
+      ClientDataService.cacheData('userData', data, 15);
+      
+      return data;
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      
+      const cached = ClientDataService.getCachedData('userData');
+      if (cached) {
+        console.warn('Using cached user data');
+        return cached;
+      }
+      
+      return {
+        history: [],
+        usage: { count: 0, remaining: 10, limit: 10 },
+        credits: { extra: 0, expiry: null },
+        lastSync: null
+      };
+    }
+  }
+
+  static async submitPatch(sessionId, userInput) {
+    const requestData = {
+      userInput: userInput,
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('/api/patch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-ID': sessionId
+        },
+        body: JSON.stringify(requestData)
+      });
+
+      if (!response.ok) throw new Error('Server error: ' + response.status);
+      
+      const data = await response.json();
+      
+      if (data.userData) {
+        ClientDataService.cacheData('userData', data.userData, 15);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Patch submission failed:', error);
+      throw error;
+    }
+  }
+
+  static async migrateLegacyData(sessionId, legacyData) {
+    try {
+      console.log('Migrating legacy data to server...');
+      
+      const response = await fetch('/api/migrate-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-ID': sessionId
+        },
+        body: JSON.stringify(legacyData)
+      });
+
+      if (!response.ok) throw new Error('Migration failed: ' + response.status);
+      
+      const result = await response.json();
+      console.log('Migration successful:', result);
+      
+      return result;
+    } catch (error) {
+      console.error('Migration failed:', error);
+      throw error;
+    }
+  }
+
+  static async canMakeRequest(sessionId) {
+    try {
+      const userData = await this.getUserData(sessionId);
+      const dailyUsed = userData.usage.count;
+      const dailyLimit = userData.usage.limit;
+      const extraCredits = userData.credits.extra;
+      
+      const canUse = dailyUsed < dailyLimit || extraCredits > 0;
+      const willUseExtra = dailyUsed >= dailyLimit && extraCredits > 0;
+      
+      return {
+        allowed: canUse,
+        willUseExtra: willUseExtra,
+        dailyRemaining: Math.max(0, dailyLimit - dailyUsed),
+        extraCredits: extraCredits
+      };
+    } catch (error) {
+      console.error('Error checking request permission:', error);
+      return { allowed: false, willUseExtra: false, dailyRemaining: 0, extraCredits: 0 };
+    }
+  }
+}
+
+// DOM elements
 const button = document.getElementById('patchBtn');
 const textarea = document.getElementById('userInput');
 const output = document.getElementById('output');
@@ -30,127 +267,108 @@ if (startAnalysisBtn) {
 }
 
 // Session management
-let sessionId = localStorage.getItem('rp-session-id');
+let sessionId = ClientDataService.getOrCreateSessionId();
+let userData = null;
 
-// Load history on page load
-window.addEventListener('load', loadHistory);
+// Load user data on page load
+window.addEventListener('load', async () => {
+  await initializeUserData();
+});
 
-async function loadHistory() {
-  const localHistory = loadHistoryFromLocal();
+async function initializeUserData() {
+  try {
+    // Check for legacy data migration
+    if (ClientDataService.hasLegacyData()) {
+      await migrateLegacyData();
+    }
+    
+    // Load user data from server
+    userData = await ServerDataService.getUserData(sessionId);
+    
+    // Update UI
+    updateUIWithUserData(userData);
+    
+  } catch (error) {
+    console.error('Failed to initialize user data:', error);
+    // Fallback to basic UI
+    const demoSection = document.querySelector('.demo-section');
+    if (demoSection) demoSection.style.display = 'none';
+    if (mainInputSection) {
+      mainInputSection.style.display = 'block';
+      mainInputSection.classList.add('show');
+    }
+  }
+}
+
+async function migrateLegacyData() {
+  try {
+    console.log('Migrating legacy localStorage data...');
+    const legacyData = ClientDataService.getLegacyData();
+    
+    if (legacyData.history.length > 0 || legacyData.extraCredits > 0) {
+      await ServerDataService.migrateLegacyData(sessionId, legacyData);
+      ClientDataService.clearLegacyData();
+      console.log('Migration completed successfully');
+    }
+  } catch (error) {
+    console.error('Migration failed, keeping localStorage data:', error);
+  }
+}
+
+function updateUIWithUserData(data) {
+  if (!data) return;
   
-  if (localHistory && localHistory.length > 0) {
-    showHistorySection(localHistory);
+  // Show history if exists
+  if (data.history && data.history.length > 0) {
+    showHistorySection(data.history);
     
-    // Check if user has pending assignments (incomplete only)
-    const pendingAssignments = getPendingAssignments(localHistory);
-    
+    // Check for pending assignments
+    const pendingAssignments = getPendingAssignments(data.history);
     if (pendingAssignments.length > 0) {
       showAssignmentReminder(pendingAssignments);
     }
     
-    // If user has history, skip demo and show main input
-    document.querySelector('.demo-section').style.display = 'none';
-    mainInputSection.style.display = 'block';
-    mainInputSection.classList.add('show');
-  }
-  
-  // Update credits display on page load
-  updateCreditsDisplay();
-}
-
-// Credit management functions
-function getExtraCredits() {
-  const credits = localStorage.getItem('rp-extra-credits');
-  const expiry = localStorage.getItem('rp-extra-credits-expiry');
-  
-  if (!credits || !expiry) return 0;
-  
-  // Check if credits have expired
-  if (Date.now() > parseInt(expiry)) {
-    localStorage.removeItem('rp-extra-credits');
-    localStorage.removeItem('rp-extra-credits-expiry');
-    return 0;
-  }
-  
-  return parseInt(credits) || 0;
-}
-
-function useExtraCredit() {
-  let credits = getExtraCredits();
-  if (credits > 0) {
-    credits--;
-    localStorage.setItem('rp-extra-credits', credits.toString());
-    console.log('Extra credit used. Remaining: ' + credits);
-    return true;
-  }
-  return false;
-}
-
-function getDailyUsage() {
-  const today = new Date().toDateString();
-  const stored = localStorage.getItem('rp-daily-usage');
-  
-  if (!stored) return 0;
-  
-  try {
-    const usage = JSON.parse(stored);
-    if (usage.date === today) {
-      return usage.count || 0;
+    // Skip demo, show main input
+    const demoSection = document.querySelector('.demo-section');
+    if (demoSection) demoSection.style.display = 'none';
+    if (mainInputSection) {
+      mainInputSection.style.display = 'block';
+      mainInputSection.classList.add('show');
     }
-  } catch (e) {
-    console.log('Error parsing daily usage:', e);
   }
   
-  return 0;
+  // Update credits display
+  updateCreditsDisplay(data.credits);
+  
+  // Update usage info
+  updateUsageDisplay(data.usage);
 }
 
-function incrementDailyUsage() {
-  const today = new Date().toDateString();
-  const currentUsage = getDailyUsage();
-  
-  const newUsage = {
-    date: today,
-    count: currentUsage + 1
-  };
-  
-  localStorage.setItem('rp-daily-usage', JSON.stringify(newUsage));
-  console.log('Daily usage incremented to:', newUsage.count);
-}
-
-// FIXED: This function now properly checks if user can make a request
-function canMakeRequest() {
-  const dailyUsage = getDailyUsage();
-  const extraCredits = getExtraCredits();
-  
-  console.log('Credit check:', { dailyUsage, extraCredits });
-  
-  // Can make request if:
-  // 1. Haven't hit daily limit (under 10 daily uses), OR
-  // 2. Have extra credits available
-  return dailyUsage < 10 || extraCredits > 0;
-}
-
-function updateCreditsDisplay() {
-  const extraCredits = getExtraCredits();
-  
-  // Add credits counter to UI
+function updateCreditsDisplay(credits) {
   let creditsDisplay = document.getElementById('credits-display');
-  if (!creditsDisplay && extraCredits > 0) {
-    creditsDisplay = document.createElement('div');
-    creditsDisplay.id = 'credits-display';
-    creditsDisplay.className = 'credits-display';
+  
+  if (credits && credits.extra > 0) {
+    if (!creditsDisplay) {
+      creditsDisplay = document.createElement('div');
+      creditsDisplay.id = 'credits-display';
+      creditsDisplay.className = 'credits-display';
+      const header = document.querySelector('.header');
+      if (header) {
+        header.insertAdjacentElement('afterend', creditsDisplay);
+      }
+    }
+    
     creditsDisplay.innerHTML = 
       '<div class="credits-header">&gt; EXTRA_CREDITS.AVAILABLE</div>' +
-      '<div class="credits-count">' + extraCredits + ' patches remaining</div>';
-    
-    // Insert after the header
-    const header = document.querySelector('.header');
-    header.insertAdjacentElement('afterend', creditsDisplay);
-  } else if (creditsDisplay && extraCredits > 0) {
-    creditsDisplay.querySelector('.credits-count').textContent = extraCredits + ' patches remaining';
-  } else if (creditsDisplay && extraCredits === 0) {
+      '<div class="credits-count">' + credits.extra + ' patches remaining</div>';
+  } else if (creditsDisplay) {
     creditsDisplay.remove();
   }
+}
+
+function updateUsageDisplay(usage) {
+  // Update any usage display elements
+  console.log('Daily usage:', usage.count, '/', usage.limit);
 }
 
 function showUpgradeMessage() {
@@ -203,7 +421,7 @@ function startResetCountdown() {
   window.addEventListener('beforeunload', () => clearInterval(timer));
 }
 
-// Helper function to get pending assignments from local history (incomplete only)
+// Helper function to get pending assignments from history
 function getPendingAssignments(history) {
   const now = Date.now();
   return history
@@ -216,18 +434,9 @@ function getPendingAssignments(history) {
     .map(item => {
       const timeSince = now - new Date(item.timestamp).getTime();
       const hoursSince = Math.floor(timeSince / (1000 * 60 * 60));
-      return { ...item, hoursSince };
+      return Object.assign({}, item, { hoursSince: hoursSince });
     })
     .filter(item => item.hoursSince >= 12); // Only show assignments that are 12+ hours old
-}
-
-function saveHistoryToLocal(historyData) {
-  localStorage.setItem('rp-history', JSON.stringify(historyData));
-}
-
-function loadHistoryFromLocal() {
-  const stored = localStorage.getItem('rp-history');
-  return stored ? JSON.parse(stored) : [];
 }
 
 function showAssignmentReminder(pendingAssignments) {
@@ -240,7 +449,7 @@ function showAssignmentReminder(pendingAssignments) {
     const assignment = pendingAssignments[0];
     reminderContent = 'It has been ' + assignment.hoursSince + ' hours. Did you complete your assignment or do you have an excuse?';
   } else {
-    const oldestHours = Math.max(...pendingAssignments.map(a => a.hoursSince));
+    const oldestHours = Math.max.apply(Math, pendingAssignments.map(a => a.hoursSince));
     reminderContent = 'You have ' + pendingAssignments.length + ' overdue assignments. The oldest is ' + oldestHours + ' hours old. Time to report back!';
   }
   
@@ -249,14 +458,21 @@ function showAssignmentReminder(pendingAssignments) {
     '<div class="reminder-content">' + reminderContent + '</div>' +
     '</div>';
   
-  document.querySelector('.header').insertAdjacentHTML('afterend', reminderHtml);
+  const header = document.querySelector('.header');
+  if (header) {
+    header.insertAdjacentHTML('afterend', reminderHtml);
+  }
 }
 
 function showHistorySection(history) {
   const historyCount = document.getElementById('historyCount');
-  historyCount.textContent = history.length;
+  if (historyCount) {
+    historyCount.textContent = history.length;
+  }
   
   const historyContent = document.getElementById('history-content');
+  if (!historyContent) return;
+  
   historyContent.innerHTML = history.slice(-3).reverse().map(function(item, index) {
     const followUpBadge = item.isFollowUp ? '<span class="follow-up-badge">FOLLOW-UP</span>' : '';
     
@@ -281,25 +497,31 @@ function showHistorySection(history) {
       '</div>';
   }).join('');
   
-  historySection.style.display = 'block';
+  if (historySection) {
+    historySection.style.display = 'block';
+  }
   
   // Check user's saved preference, default to visible for new users
   const savedState = localStorage.getItem('rp-history-visible');
   const shouldShow = savedState === null ? true : savedState === 'true';
   
   const toggle = document.getElementById('history-toggle');
-  if (shouldShow) {
-    historyContent.style.display = 'block';
-    toggle.textContent = '> Hide';
-  } else {
-    historyContent.style.display = 'none';
-    toggle.textContent = '> Show';
+  if (toggle && historyContent) {
+    if (shouldShow) {
+      historyContent.style.display = 'block';
+      toggle.textContent = '> Hide';
+    } else {
+      historyContent.style.display = 'none';
+      toggle.textContent = '> Show';
+    }
   }
 }
 
 window.toggleHistory = function() {
   const content = document.getElementById('history-content');
   const toggle = document.getElementById('history-toggle');
+  
+  if (!content || !toggle) return;
   
   // Check actual computed display style
   const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
@@ -315,101 +537,23 @@ window.toggleHistory = function() {
   }
 }
 
-// Enhanced function to mark assignment as completed in local storage
+// Update assignment completion to work with server data
 function markAssignmentCompletedLocally(completedAssignmentId) {
-  if (!completedAssignmentId || completedAssignmentId === 'unclear' || completedAssignmentId === 'mass_unclear') {
-    console.log('No valid assignment ID to complete:', completedAssignmentId);
-    return;
-  }
+  if (!userData || !userData.history) return;
   
-  console.log('Looking for assignment to complete:', completedAssignmentId);
-  
-  const currentHistory = loadHistoryFromLocal();
-  console.log('Current history count:', currentHistory.length);
-  
-  // Find assignment by multiple methods since server uses different ID system
-  let assignment = null;
-  
-  // Method 1: Direct ID match
-  assignment = currentHistory.find(item => item.id === completedAssignmentId);
-  if (assignment) {
-    console.log('Found by direct ID match');
-  }
-  
-  // Method 2: Timestamp match (server sometimes uses timestamp as ID)
-  if (!assignment) {
-    assignment = currentHistory.find(item => 
-      item.timestamp && new Date(item.timestamp).getTime() === completedAssignmentId
-    );
-    if (assignment) {
-      console.log('Found by timestamp match');
-    }
-  }
-  
-  // Method 3: Find assignments and use smart matching
-  if (!assignment) {
-    // Get pending assignments from local history
-    const pendingAssignments = currentHistory.filter(item => 
-      item.response && 
-      item.response.includes('Your assignment:') && 
-      !item.isFollowUp && 
-      !item.completed
-    );
-    
-    console.log('Found pending assignments:', pendingAssignments.length);
-    pendingAssignments.forEach((item, idx) => {
-      console.log('Assignment ' + (idx + 1) + '. ID: ' + item.id + ', Timestamp: ' + item.timestamp + ', Input: "' + item.input.substring(0, 40) + '..."');
-    });
-    
-    if (pendingAssignments.length === 1) {
-      // Only one pending assignment, that must be it
-      assignment = pendingAssignments[0];
-      console.log('Using single pending assignment');
-    } else if (pendingAssignments.length > 1) {
-      // Multiple pending - try to find the one most likely to be completed
-      // Sort by timestamp (oldest first, most likely to be completed first)
-      const sortedPending = pendingAssignments.sort((a, b) => 
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-      );
-      assignment = sortedPending[0];
-      console.log('Using oldest pending assignment as best guess');
-    }
-  }
+  const assignment = userData.history.find(item => 
+    item.id === completedAssignmentId || 
+    String(item.id) === String(completedAssignmentId)
+  );
   
   if (assignment) {
-    console.log('Marking assignment as completed:', {
-      id: assignment.id,
-      input: assignment.input.substring(0, 50) + '...',
-      timestamp: assignment.timestamp,
-      wasCompleted: assignment.completed
-    });
-    
     assignment.completed = true;
     assignment.completedAt = new Date().toISOString();
-    saveHistoryToLocal(currentHistory);
-
-    // Refresh the history display to show updated badges
-    showHistorySection(currentHistory);
+    showHistorySection(userData.history);
     
-    console.log('Assignment marked as completed locally');
-    
-    // Remove assignment reminder if it exists
+    // Remove reminder
     const reminder = document.getElementById('assignment-reminder');
-    if (reminder) {
-      reminder.remove();
-      console.log('Removed assignment reminder');
-    }
-    
-  } else {
-    console.log('Could not find assignment to complete with ID:', completedAssignmentId);
-    console.log('Available history items:');
-    currentHistory.forEach((item, idx) => {
-      console.log('Item ' + (idx + 1) + '. ID: ' + item.id + ', Timestamp: ' + new Date(item.timestamp).getTime() + ', Input: "' + (item.input ? item.input.substring(0, 30) : 'N/A') + '..."', {
-        hasAssignment: item.response ? item.response.includes('Your assignment:') : false,
-        isFollowUp: item.isFollowUp,
-        completed: item.completed
-      });
-    });
+    if (reminder) reminder.remove();
   }
 }
 
@@ -417,8 +561,10 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.example-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      textarea.value = btn.dataset.example;
-      textarea.focus();
+      if (textarea) {
+        textarea.value = btn.dataset.example;
+        textarea.focus();
+      }
       
       // Remove assignment reminder if it exists
       const reminder = document.getElementById('assignment-reminder');
@@ -441,7 +587,7 @@ if (textarea) {
   });
 }
 
-// FIXED: Enhanced button click with proper credit system integration
+// Enhanced button click with proper credit system integration
 if (button) {
   button.addEventListener('click', async () => {
     const text = textarea.value.trim();
@@ -450,172 +596,108 @@ if (button) {
       return;
     }
     
-    // FIXED: Check if user can make a request BEFORE processing
-    if (!canMakeRequest()) {
-      // Show upgrade message instead of processing
-      showUpgradeMessage();
-      return;
-    }
-    
-    const dailyUsage = getDailyUsage();
-    const usingExtraCredit = dailyUsage >= 10;
-    
-    // Track reality patch request
-    if (window.va) {
-      window.va('track', 'RealityPatchRequest', { 
-        inputLength: text.length,
-        usingExtraCredit: usingExtraCredit,
-        fromDemo: document.querySelector('.demo-section').style.display === 'none'
-      });
-    }
-    
     button.disabled = true;
     button.textContent = 'PROCESSING...';
     
-    // Show output section and loading state
+    // Show loading
     output.classList.add('show');
     resultContent.innerHTML = '<div class="loading">&gt; Analyzing psychological patterns<span class="loading-dots"></span></div>';
 
-    // Remove assignment reminder if it exists
+    // Remove assignment reminder
     const reminder = document.getElementById('assignment-reminder');
     if (reminder) reminder.remove();
 
     try {
-      const res = await fetch('/api/patch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-ID': sessionId || ''
-        },
-        body: JSON.stringify({ 
-          userInput: text,
-          usingExtraCredit: usingExtraCredit
-        })
-      });
-
-      const data = await res.json();
-      console.log('Server response:', data);
+      // Check if can make request
+      const permissionCheck = await ServerDataService.canMakeRequest(sessionId);
       
-      // Handle error responses before processing success
-      if (!res.ok || data.patch.includes('Server error') || data.patch.includes('AI service temporarily unavailable')) {
-        throw new Error(data.patch || 'Server error occurred');
-      }
-      
-      // Handle limit reached response from server
-      if (data.limitReached) {
+      if (!permissionCheck.allowed) {
         showUpgradeMessage();
         return;
       }
       
-      // FIXED: Handle credit usage and daily count tracking
-      if (usingExtraCredit) {
-        // Using extra credit
-        useExtraCredit();
-        updateCreditsDisplay();
-        console.log('Used extra credit');
-      } else {
-        // Using regular daily allowance
-        incrementDailyUsage();
-        console.log('Used daily allowance');
-      }
-      
-      // Store session ID
-      if (data.sessionId) {
-        sessionId = data.sessionId;
-        localStorage.setItem('rp-session-id', sessionId);
-      }
-      
-      // CRITICAL: Mark assignment as completed BEFORE saving new interaction
-      if (data.completedAssignmentId) {
-        console.log('Server detected completed assignment:', data.completedAssignmentId);
-        markAssignmentCompletedLocally(data.completedAssignmentId);
-      }
-      
-      // Typewriter effect for results
-      let i = 0;
-      const response = data.patch;
-      resultContent.innerHTML = '';
-      
-      const typewriter = setInterval(() => {
-        if (i < response.length) {
-          resultContent.innerHTML += response.charAt(i);
-          i++;
-        } else {
-          clearInterval(typewriter);
-          
-          // Add success message after typewriter completes ONLY if no error occurred
-          if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
-            setTimeout(() => {
-              const statusHtml = data.isFollowUp 
-                ? '<div class="status-message follow-up">Progress tracking activated. Keep coming back - accountability is what separates the doers from the dreamers.</div>'
-                : '<div class="status-message">Assignment given. Come back in 24 hours and report what you actually did.</div>';
-              
-              resultContent.innerHTML += statusHtml;
-            }, 1000);
-          }
-        }
-      }, 20);
-      
-      // Track successful patch delivery - only if no error
-      if (window.va && !data.patch.includes('Server error')) {
-        window.va('track', 'RealityPatchDelivered', { 
-          isFollowUp: data.isFollowUp,
-          historyCount: data.historyCount,
-          completedAssignmentId: data.completedAssignmentId
+      // Track request
+      if (window.va) {
+        window.va('track', 'RealityPatchRequest', { 
+          inputLength: text.length,
+          willUseExtra: permissionCheck.willUseExtra
         });
       }
       
-      // Save to local storage - only if successful
-      if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
-        const currentHistory = loadHistoryFromLocal();
-        const newItem = {
-          input: text,
-          response: data.patch,
-          timestamp: new Date().toISOString(),
-          id: Date.now(),
-          isFollowUp: data.isFollowUp,
-          completed: false, // New assignments start as incomplete
-          completedAssignmentId: data.completedAssignmentId
-        };
-        
-        currentHistory.push(newItem);
-
-        // Keep only last 10
-        if (currentHistory.length > 10) {
-          currentHistory.shift();
-        }
-
-        saveHistoryToLocal(currentHistory);
-        showHistorySection(currentHistory);
-
-        // Clear textarea after successful submission
-        textarea.value = '';
-        textarea.style.height = '120px';
+      // Submit to server
+      const response = await ServerDataService.submitPatch(sessionId, text);
+      
+      if (response.limitReached) {
+        showUpgradeMessage();
+        return;
       }
       
-    } catch (err) {
-      console.error('Request failed:', err);
-      resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + err.message + '</div>';
+      // Update local user data
+      if (response.userData) {
+        userData = response.userData;
+        updateUIWithUserData(userData);
+      }
       
-      // Track errors
+      // Handle assignment completion
+      if (response.completedAssignmentId) {
+        markAssignmentCompletedLocally(response.completedAssignmentId);
+      }
+      
+      // Typewriter effect
+      typewriterEffect(response.patch, () => {
+        // Add status message after typewriter
+        setTimeout(() => {
+          const statusHtml = response.isFollowUp 
+            ? '<div class="status-message follow-up">Progress tracking activated.</div>'
+            : '<div class="status-message">Assignment given. Come back in 24 hours.</div>';
+          
+          resultContent.innerHTML += statusHtml;
+        }, 1000);
+        
+        // Update history display
+        if (userData && userData.history) {
+          showHistorySection(userData.history);
+        }
+        
+        // Clear textarea
+        textarea.value = '';
+        textarea.style.height = '120px';
+      });
+      
+      // Track success
       if (window.va) {
-        window.va('track', 'RealityPatchError', { error: err.message });
+        window.va('track', 'RealityPatchDelivered', { 
+          isFollowUp: response.isFollowUp 
+        });
+      }
+      
+    } catch (error) {
+      console.error('Request failed:', error);
+      resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + error.message + '</div>';
+      
+      if (window.va) {
+        window.va('track', 'RealityPatchError', { error: error.message });
       }
     } finally {
       button.disabled = false;
       button.textContent = 'ANALYZE PATTERN';
     }
   });
+}
 
-  // Enter to submit (Ctrl+Enter or Cmd+Enter)
-  textarea.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-      e.preventDefault();
-      if (!button.disabled) {
-        button.click();
-      }
+function typewriterEffect(text, callback) {
+  let i = 0;
+  resultContent.innerHTML = '';
+  
+  const typewriter = setInterval(() => {
+    if (i < text.length) {
+      resultContent.innerHTML += text.charAt(i);
+      i++;
+    } else {
+      clearInterval(typewriter);
+      if (callback) callback();
     }
-  });
+  }, 20);
 }
 
 // Track page views

@@ -2,6 +2,7 @@
 import { handleHistoryRequest } from './handlers/historyHandler.js';
 import { handlePatchRequest } from './handlers/patchHandler.js';
 import { handleStaticRequest } from './handlers/staticHandler.js';
+import { handleUserDataRequest, handleMigrationRequest } from './handlers/userDataHandler.js';
 import { handlePaymentSuccessRequest } from './handlers/paymentSuccessHandler.js';
 import { setCorsHeaders } from './utils/cors.js';
 
@@ -21,6 +22,10 @@ export const router = async (req, res) => {
       await handleHistoryRequest(req, res);
     } else if (req.method === 'POST' && req.url === '/api/patch') {
       await handlePatchRequest(req, res);
+    } else if (req.method === 'GET' && req.url?.startsWith('/api/user-data')) {
+      await handleUserDataRequest(req, res);
+    } else if (req.method === 'POST' && req.url === '/api/migrate-data') {
+      await handleMigrationRequest(req, res);
     } else if (req.method === 'GET' && req.url?.startsWith('/payment-success')) {
       await handlePaymentSuccessRequest(req, res);
     } else {

@@ -251,4 +251,57 @@ export class DatabaseService {
       return { totalUsers: 0, estimatedDailyUsage: 0 };
     }
   }
+
+  // Credit management functions
+  static async addExtraCredits(userId, amount, expiryHours = 24) {
+    const userData = await this.getUserData(userId);
+    
+    const currentCredits = userData.extraCredits || 0;
+    const newTotal = currentCredits + amount;
+    
+    const expiry = new Date();
+    expiry.setHours(expiry.getHours() + expiryHours);
+    
+    userData.extraCredits = newTotal;
+    userData.creditsExpiry = expiry.toISOString();
+    
+    await this.saveUserData(userId, userData);
+    
+    return { added: amount, total: newTotal, expiry: userData.creditsExpiry };
+  }
+
+  static async useExtraCredit(userId) {
+    const userData = await this.getUserData(userId);
+    
+    if (!userData.extraCredits || userData.extraCredits <= 0) {
+      return { success: false, reason: 'No credits available' };
+    }
+    
+    if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
+      userData.extraCredits = 0;
+      userData.creditsExpiry = null;
+      await this.saveUserData(userId, userData);
+      return { success: false, reason: 'Credits expired' };
+    }
+    
+    userData.extraCredits -= 1;
+    await this.saveUserData(userId, userData);
+    
+    return { success: true, remaining: userData.extraCredits };
+  }
+
+  static async getUserCredits(userId) {
+    const userData = await this.getUserData(userId);
+    
+    if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
+      userData.extraCredits = 0;
+      userData.creditsExpiry = null;
+      await this.saveUserData(userId, userData);
+    }
+    
+    return {
+      amount: userData.extraCredits || 0,
+      expiry: userData.creditsExpiry
+    };
+  }
 }
