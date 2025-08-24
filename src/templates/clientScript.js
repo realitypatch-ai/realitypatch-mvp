@@ -26,7 +26,7 @@ async function loadHistory() {
     }
   }
   
-  // FIXED: Update credits display on page load
+  // Update credits display on page load
   updateCreditsDisplay();
 }
 
@@ -87,6 +87,19 @@ function incrementDailyUsage() {
   
   localStorage.setItem('rp-daily-usage', JSON.stringify(newUsage));
   console.log('Daily usage incremented to:', newUsage.count);
+}
+
+// FIXED: This function now properly checks if user can make a request
+function canMakeRequest() {
+  const dailyUsage = getDailyUsage();
+  const extraCredits = getExtraCredits();
+  
+  console.log('Credit check:', { dailyUsage, extraCredits });
+  
+  // Can make request if:
+  // 1. Haven't hit daily limit (under 10 daily uses), OR
+  // 2. Have extra credits available
+  return dailyUsage < 10 || extraCredits > 0;
 }
 
 function updateCreditsDisplay() {
@@ -274,7 +287,7 @@ window.toggleHistory = function() {
   }
 }
 
-// FIXED: Enhanced function to mark assignment as completed in local storage
+// Enhanced function to mark assignment as completed in local storage
 function markAssignmentCompletedLocally(completedAssignmentId) {
   if (!completedAssignmentId || completedAssignmentId === 'unclear' || completedAssignmentId === 'mass_unclear') {
     console.log('No valid assignment ID to complete:', completedAssignmentId);
@@ -404,21 +417,21 @@ button.addEventListener('click', async () => {
     return;
   }
   
-  // FIXED: Check daily limit and extra credits BEFORE making request
-  const dailyUsage = getDailyUsage();
-  const extraCredits = getExtraCredits();
-  
-  if (dailyUsage >= 10 && extraCredits === 0) {
+  // FIXED: Check if user can make a request BEFORE processing
+  if (!canMakeRequest()) {
     // Show upgrade message instead of processing
     showUpgradeMessage();
     return;
   }
   
+  const dailyUsage = getDailyUsage();
+  const usingExtraCredit = dailyUsage >= 10;
+  
   // Track reality patch request
   if (window.va) {
     window.va('track', 'RealityPatchRequest', { 
       inputLength: text.length,
-      usingExtraCredit: dailyUsage >= 10
+      usingExtraCredit: usingExtraCredit
     });
   }
   
@@ -442,7 +455,7 @@ button.addEventListener('click', async () => {
       },
       body: JSON.stringify({ 
         userInput: text,
-        usingExtraCredit: dailyUsage >= 10
+        usingExtraCredit: usingExtraCredit
       })
     });
 
@@ -454,14 +467,22 @@ button.addEventListener('click', async () => {
       throw new Error(data.patch || 'Server error occurred');
     }
     
+    // Handle limit reached response from server
+    if (data.limitReached) {
+      showUpgradeMessage();
+      return;
+    }
+    
     // FIXED: Handle credit usage and daily count tracking
-    if (dailyUsage >= 10 && extraCredits > 0) {
+    if (usingExtraCredit) {
       // Using extra credit
       useExtraCredit();
       updateCreditsDisplay();
+      console.log('Used extra credit');
     } else {
       // Using regular daily allowance
       incrementDailyUsage();
+      console.log('Used daily allowance');
     }
     
     // Store session ID
@@ -470,7 +491,7 @@ button.addEventListener('click', async () => {
       localStorage.setItem('rp-session-id', sessionId);
     }
     
-    // CRITICAL FIX: Mark assignment as completed BEFORE saving new interaction
+    // CRITICAL: Mark assignment as completed BEFORE saving new interaction
     if (data.completedAssignmentId) {
       console.log('Server detected completed assignment:', data.completedAssignmentId);
       markAssignmentCompletedLocally(data.completedAssignmentId);
