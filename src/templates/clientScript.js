@@ -1,10 +1,33 @@
-// src/templates/clientScript.js - Client-side JavaScript with FIXED credit system integration
+// src/templates/clientScript.js - Client-side JavaScript with demo section handling
 export const getClientScript = () => `
 const button = document.getElementById('patchBtn');
 const textarea = document.getElementById('userInput');
 const output = document.getElementById('output');
 const resultContent = document.getElementById('resultContent');
 const historySection = document.getElementById('historySection');
+const startAnalysisBtn = document.getElementById('startAnalysisBtn');
+const mainInputSection = document.getElementById('mainInputSection');
+
+// Demo section interaction
+if (startAnalysisBtn) {
+  startAnalysisBtn.addEventListener('click', () => {
+    // Hide demo section and show main input
+    document.querySelector('.demo-section').style.display = 'none';
+    mainInputSection.style.display = 'block';
+    
+    // Trigger the show animation
+    setTimeout(() => {
+      mainInputSection.classList.add('show');
+      // Focus on textarea for immediate interaction
+      textarea.focus();
+    }, 100);
+    
+    // Track demo conversion
+    if (window.va) {
+      window.va('track', 'DemoToInputConversion');
+    }
+  });
+}
 
 // Session management
 let sessionId = localStorage.getItem('rp-session-id');
@@ -24,6 +47,11 @@ async function loadHistory() {
     if (pendingAssignments.length > 0) {
       showAssignmentReminder(pendingAssignments);
     }
+    
+    // If user has history, skip demo and show main input
+    document.querySelector('.demo-section').style.display = 'none';
+    mainInputSection.style.display = 'block';
+    mainInputSection.classList.add('show');
   }
   
   // Update credits display on page load
@@ -385,205 +413,213 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
   }
 }
 
-// Example buttons functionality
-document.querySelectorAll('.example-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    textarea.value = btn.dataset.example;
-    textarea.focus();
-    
-    // Remove assignment reminder if it exists
-    const reminder = document.getElementById('assignment-reminder');
-    if (reminder) reminder.remove();
+// Example buttons functionality (only when main input is visible)
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.example-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      textarea.value = btn.dataset.example;
+      textarea.focus();
+      
+      // Remove assignment reminder if it exists
+      const reminder = document.getElementById('assignment-reminder');
+      if (reminder) reminder.remove();
 
-    // Track example button clicks
-    if (window.va) {
-      window.va('track', 'ExampleButtonClick', { example: btn.dataset.example });
-    }
+      // Track example button clicks
+      if (window.va) {
+        window.va('track', 'ExampleButtonClick', { example: btn.dataset.example });
+      }
+    });
   });
 });
 
-// Auto-resize textarea
-textarea.addEventListener('input', () => {
-  textarea.style.height = 'auto';
-  const newHeight = Math.min(Math.max(textarea.scrollHeight, 120), 250);
-  textarea.style.height = newHeight + 'px';
-});
+// Auto-resize textarea (only when visible)
+if (textarea) {
+  textarea.addEventListener('input', () => {
+    textarea.style.height = 'auto';
+    const newHeight = Math.min(Math.max(textarea.scrollHeight, 120), 250);
+    textarea.style.height = newHeight + 'px';
+  });
+}
 
 // FIXED: Enhanced button click with proper credit system integration
-button.addEventListener('click', async () => {
-  const text = textarea.value.trim();
-  if (!text) {
-    textarea.focus();
-    return;
-  }
-  
-  // FIXED: Check if user can make a request BEFORE processing
-  if (!canMakeRequest()) {
-    // Show upgrade message instead of processing
-    showUpgradeMessage();
-    return;
-  }
-  
-  const dailyUsage = getDailyUsage();
-  const usingExtraCredit = dailyUsage >= 10;
-  
-  // Track reality patch request
-  if (window.va) {
-    window.va('track', 'RealityPatchRequest', { 
-      inputLength: text.length,
-      usingExtraCredit: usingExtraCredit
-    });
-  }
-  
-  button.disabled = true;
-  button.textContent = 'PROCESSING...';
-  
-  // Show output section and loading state
-  output.classList.add('show');
-  resultContent.innerHTML = '<div class="loading">&gt; Analyzing psychological patterns<span class="loading-dots"></span></div>';
-
-  // Remove assignment reminder if it exists
-  const reminder = document.getElementById('assignment-reminder');
-  if (reminder) reminder.remove();
-
-  try {
-    const res = await fetch('/api/patch', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Session-ID': sessionId || ''
-      },
-      body: JSON.stringify({ 
-        userInput: text,
-        usingExtraCredit: usingExtraCredit
-      })
-    });
-
-    const data = await res.json();
-    console.log('Server response:', data);
-    
-    // Handle error responses before processing success
-    if (!res.ok || data.patch.includes('Server error') || data.patch.includes('AI service temporarily unavailable')) {
-      throw new Error(data.patch || 'Server error occurred');
+if (button) {
+  button.addEventListener('click', async () => {
+    const text = textarea.value.trim();
+    if (!text) {
+      textarea.focus();
+      return;
     }
     
-    // Handle limit reached response from server
-    if (data.limitReached) {
+    // FIXED: Check if user can make a request BEFORE processing
+    if (!canMakeRequest()) {
+      // Show upgrade message instead of processing
       showUpgradeMessage();
       return;
     }
     
-    // FIXED: Handle credit usage and daily count tracking
-    if (usingExtraCredit) {
-      // Using extra credit
-      useExtraCredit();
-      updateCreditsDisplay();
-      console.log('Used extra credit');
-    } else {
-      // Using regular daily allowance
-      incrementDailyUsage();
-      console.log('Used daily allowance');
-    }
+    const dailyUsage = getDailyUsage();
+    const usingExtraCredit = dailyUsage >= 10;
     
-    // Store session ID
-    if (data.sessionId) {
-      sessionId = data.sessionId;
-      localStorage.setItem('rp-session-id', sessionId);
-    }
-    
-    // CRITICAL: Mark assignment as completed BEFORE saving new interaction
-    if (data.completedAssignmentId) {
-      console.log('Server detected completed assignment:', data.completedAssignmentId);
-      markAssignmentCompletedLocally(data.completedAssignmentId);
-    }
-    
-    // Typewriter effect for results
-    let i = 0;
-    const response = data.patch;
-    resultContent.innerHTML = '';
-    
-    const typewriter = setInterval(() => {
-      if (i < response.length) {
-        resultContent.innerHTML += response.charAt(i);
-        i++;
-      } else {
-        clearInterval(typewriter);
-        
-        // Add success message after typewriter completes ONLY if no error occurred
-        if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
-          setTimeout(() => {
-            const statusHtml = data.isFollowUp 
-              ? '<div class="status-message follow-up">Progress tracking activated. Keep coming back - accountability is what separates the doers from the dreamers.</div>'
-              : '<div class="status-message">Assignment given. Come back in 24 hours and report what you actually did.</div>';
-            
-            resultContent.innerHTML += statusHtml;
-          }, 1000);
-        }
-      }
-    }, 20);
-    
-    // Track successful patch delivery - only if no error
-    if (window.va && !data.patch.includes('Server error')) {
-      window.va('track', 'RealityPatchDelivered', { 
-        isFollowUp: data.isFollowUp,
-        historyCount: data.historyCount,
-        completedAssignmentId: data.completedAssignmentId
+    // Track reality patch request
+    if (window.va) {
+      window.va('track', 'RealityPatchRequest', { 
+        inputLength: text.length,
+        usingExtraCredit: usingExtraCredit,
+        fromDemo: document.querySelector('.demo-section').style.display === 'none'
       });
     }
     
-    // Save to local storage - only if successful
-    if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
-      const currentHistory = loadHistoryFromLocal();
-      const newItem = {
-        input: text,
-        response: data.patch,
-        timestamp: new Date().toISOString(),
-        id: Date.now(),
-        isFollowUp: data.isFollowUp,
-        completed: false, // New assignments start as incomplete
-        completedAssignmentId: data.completedAssignmentId
-      };
+    button.disabled = true;
+    button.textContent = 'PROCESSING...';
+    
+    // Show output section and loading state
+    output.classList.add('show');
+    resultContent.innerHTML = '<div class="loading">&gt; Analyzing psychological patterns<span class="loading-dots"></span></div>';
+
+    // Remove assignment reminder if it exists
+    const reminder = document.getElementById('assignment-reminder');
+    if (reminder) reminder.remove();
+
+    try {
+      const res = await fetch('/api/patch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-ID': sessionId || ''
+        },
+        body: JSON.stringify({ 
+          userInput: text,
+          usingExtraCredit: usingExtraCredit
+        })
+      });
+
+      const data = await res.json();
+      console.log('Server response:', data);
       
-      currentHistory.push(newItem);
-
-      // Keep only last 10
-      if (currentHistory.length > 10) {
-        currentHistory.shift();
+      // Handle error responses before processing success
+      if (!res.ok || data.patch.includes('Server error') || data.patch.includes('AI service temporarily unavailable')) {
+        throw new Error(data.patch || 'Server error occurred');
       }
+      
+      // Handle limit reached response from server
+      if (data.limitReached) {
+        showUpgradeMessage();
+        return;
+      }
+      
+      // FIXED: Handle credit usage and daily count tracking
+      if (usingExtraCredit) {
+        // Using extra credit
+        useExtraCredit();
+        updateCreditsDisplay();
+        console.log('Used extra credit');
+      } else {
+        // Using regular daily allowance
+        incrementDailyUsage();
+        console.log('Used daily allowance');
+      }
+      
+      // Store session ID
+      if (data.sessionId) {
+        sessionId = data.sessionId;
+        localStorage.setItem('rp-session-id', sessionId);
+      }
+      
+      // CRITICAL: Mark assignment as completed BEFORE saving new interaction
+      if (data.completedAssignmentId) {
+        console.log('Server detected completed assignment:', data.completedAssignmentId);
+        markAssignmentCompletedLocally(data.completedAssignmentId);
+      }
+      
+      // Typewriter effect for results
+      let i = 0;
+      const response = data.patch;
+      resultContent.innerHTML = '';
+      
+      const typewriter = setInterval(() => {
+        if (i < response.length) {
+          resultContent.innerHTML += response.charAt(i);
+          i++;
+        } else {
+          clearInterval(typewriter);
+          
+          // Add success message after typewriter completes ONLY if no error occurred
+          if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
+            setTimeout(() => {
+              const statusHtml = data.isFollowUp 
+                ? '<div class="status-message follow-up">Progress tracking activated. Keep coming back - accountability is what separates the doers from the dreamers.</div>'
+                : '<div class="status-message">Assignment given. Come back in 24 hours and report what you actually did.</div>';
+              
+              resultContent.innerHTML += statusHtml;
+            }, 1000);
+          }
+        }
+      }, 20);
+      
+      // Track successful patch delivery - only if no error
+      if (window.va && !data.patch.includes('Server error')) {
+        window.va('track', 'RealityPatchDelivered', { 
+          isFollowUp: data.isFollowUp,
+          historyCount: data.historyCount,
+          completedAssignmentId: data.completedAssignmentId
+        });
+      }
+      
+      // Save to local storage - only if successful
+      if (!data.patch.includes('Server error') && !data.patch.includes('AI service temporarily unavailable')) {
+        const currentHistory = loadHistoryFromLocal();
+        const newItem = {
+          input: text,
+          response: data.patch,
+          timestamp: new Date().toISOString(),
+          id: Date.now(),
+          isFollowUp: data.isFollowUp,
+          completed: false, // New assignments start as incomplete
+          completedAssignmentId: data.completedAssignmentId
+        };
+        
+        currentHistory.push(newItem);
 
-      saveHistoryToLocal(currentHistory);
-      showHistorySection(currentHistory);
+        // Keep only last 10
+        if (currentHistory.length > 10) {
+          currentHistory.shift();
+        }
 
-      // Clear textarea after successful submission
-      textarea.value = '';
-      textarea.style.height = '120px';
-    }
-    
-  } catch (err) {
-    console.error('Request failed:', err);
-    resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + err.message + '</div>';
-    
-    // Track errors
-    if (window.va) {
-      window.va('track', 'RealityPatchError', { error: err.message });
-    }
-  } finally {
-    button.disabled = false;
-    button.textContent = 'ANALYZE PATTERN';
-  }
-});
+        saveHistoryToLocal(currentHistory);
+        showHistorySection(currentHistory);
 
-// Enter to submit (Ctrl+Enter or Cmd+Enter)
-textarea.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-    e.preventDefault();
-    if (!button.disabled) {
-      button.click();
+        // Clear textarea after successful submission
+        textarea.value = '';
+        textarea.style.height = '120px';
+      }
+      
+    } catch (err) {
+      console.error('Request failed:', err);
+      resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + err.message + '</div>';
+      
+      // Track errors
+      if (window.va) {
+        window.va('track', 'RealityPatchError', { error: err.message });
+      }
+    } finally {
+      button.disabled = false;
+      button.textContent = 'ANALYZE PATTERN';
     }
-  }
-});
+  });
+
+  // Enter to submit (Ctrl+Enter or Cmd+Enter)
+  textarea.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      if (!button.disabled) {
+        button.click();
+      }
+    }
+  });
+}
 
 // Track page views
 if (window.va) {
   window.va('track', 'PageView');
-}`;
+}
+`;
