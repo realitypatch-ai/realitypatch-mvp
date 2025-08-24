@@ -554,6 +554,15 @@ textarea::placeholder {
     opacity: 1;
 }
 
+.creator-story {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-style: italic;
+    margin: 8px 0;
+    opacity: 0.9;
+}
+
 .creator-info {
     font-family: 'JetBrains Mono', monospace;
     font-size: 12px;
