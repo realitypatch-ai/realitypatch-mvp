@@ -300,24 +300,67 @@ async function initializeUserData() {
   }
 }
 
+// Add this function to show migration errors to users
+function showMigrationError() {
+  const errorHtml = '<div id="migration-error" class="migration-error" style="' +
+    'background: #ff3366; color: white; padding: 10px; border-radius: 4px; ' +
+    'margin: 10px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">' +
+    '<span>⚠️ Failed to sync your data to server. Your credits are safe locally.</span>' +
+    '<button onclick="this.parentElement.remove()" style="' +
+    'background: none; border: none; color: white; cursor: pointer; padding: 0 5px; font-size: 16px;">×</button>' +
+    '</div>';
+  
+  const header = document.querySelector('.header');
+  if (header && !document.getElementById('migration-error')) {
+    header.insertAdjacentHTML('afterend', errorHtml);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+      const errorEl = document.getElementById('migration-error');
+      if (errorEl) errorEl.remove();
+    }, 10000);
+  }
+}
+
 async function migrateLegacyData() {
   try {
     console.log('Migrating legacy localStorage data...');
     const legacyData = ClientDataService.getLegacyData();
     
     if (legacyData.history.length > 0 || legacyData.extraCredits > 0) {
-      await ServerDataService.migrateLegacyData(sessionId, legacyData);
-      ClientDataService.clearLegacyData(); // Only clear on success
-      console.log('Migration completed successfully');
+      console.log('📤 Sending migration data:', {
+        historyItems: legacyData.history.length,
+        extraCredits: legacyData.extraCredits,
+        dailyUsage: legacyData.dailyUsage?.count || 0
+      });
+      
+      const migrationResult = await ServerDataService.migrateLegacyData(sessionId, legacyData);
+      
+      // CRITICAL FIX: Only clear on successful migration
+      if (migrationResult && migrationResult.success) {
+        console.log('✅ Migration successful, clearing localStorage:', migrationResult.migrated);
+        ClientDataService.clearLegacyData();
+        console.log('🧹 localStorage cleared successfully');
+      } else {
+        console.error('❌ Migration failed, keeping localStorage data');
+        throw new Error('Migration response indicates failure');
+      }
+    } else {
+      console.log('📭 No legacy data to migrate');
     }
   } catch (error) {
-    console.error('Migration failed:', error);
+    console.error('❌ Migration failed:', error);
     
-    // CRITICAL: Clear localStorage even on failure to prevent loop
-    // User can manually re-enter data if needed
-    if (error.message.includes('500')) {
-      console.log('Server error detected, clearing localStorage to prevent loop');
+    // CRITICAL FIX: Don't clear localStorage on failure
+    // Only clear if we get a specific server error that indicates data corruption
+    if (error.message.includes('500') && error.message.includes('database')) {
+      console.log('🧹 Clearing localStorage due to server database error to prevent loop');
       ClientDataService.clearLegacyData();
+    } else {
+      console.log('💾 Keeping localStorage data - user can retry migration later');
+      
+      // Show user a non-intrusive error message
+      showMigrationError();
     }
   }
 }

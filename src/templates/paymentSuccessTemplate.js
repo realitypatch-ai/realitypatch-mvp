@@ -214,35 +214,57 @@ function generateErrorContent() {
   `;
 }
 
+// Fixed payment success script - replace the getPaymentSuccessScript function
 function getPaymentSuccessScript() {
   return `
-    // Add credits to user's account immediately
+    // Add credits to user's account immediately with conflict resolution
     function addCreditsToUser() {
       try {
+        console.log('💳 Adding 10 credits from payment...');
+        
         // Get current extra credits
         let extraCredits = parseInt(localStorage.getItem('rp-extra-credits') || '0');
+        console.log('   Current localStorage credits:', extraCredits);
         
-        // Add 10 new credits
-        extraCredits += 10;
+        // Add 10 new credits (don't replace, add to existing)
+        const newCredits = 10;
+        extraCredits += newCredits;
         
-        // Save to localStorage with expiry (until tomorrow)
+        // Set expiry to tomorrow at midnight
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0); // Reset at midnight
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        // Save with timestamp to track when added
+        const creditData = {
+          amount: extraCredits,
+          expiry: tomorrow.getTime(),
+          lastAdded: Date.now(),
+          source: 'stripe_payment'
+        };
         
         localStorage.setItem('rp-extra-credits', extraCredits.toString());
         localStorage.setItem('rp-extra-credits-expiry', tomorrow.getTime().toString());
+        localStorage.setItem('rp-credit-metadata', JSON.stringify(creditData));
         
-        console.log('✅ Added 10 credits. Total extra credits:', extraCredits);
+        console.log('✅ Credits added successfully:', {
+          newTotal: extraCredits,
+          added: newCredits,
+          expiry: tomorrow.toISOString(),
+          source: 'payment'
+        });
         
         // Track successful credit addition
         if (window.va) {
           window.va('track', 'CreditsAdded', { 
-            amount: 10, 
+            amount: newCredits, 
             total: extraCredits,
             method: 'stripe_payment'
           });
         }
+        
+        // Show success message in UI
+        showCreditAddedConfirmation(newCredits, extraCredits);
         
       } catch (error) {
         console.error('❌ Error adding credits:', error);
@@ -251,12 +273,74 @@ function getPaymentSuccessScript() {
         if (window.va) {
           window.va('track', 'CreditsAddError', { error: error.message });
         }
+        
+        // Show error to user
+        showCreditError();
       }
+    }
+
+    // Show confirmation that credits were added
+    function showCreditAddedConfirmation(added, total) {
+      const confirmEl = document.createElement('div');
+      confirmEl.style.cssText = \`
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #2ecc71;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(46, 204, 113, 0.3);
+        animation: slideIn 0.3s ease;
+      \`;
+      
+      confirmEl.innerHTML = \`
+        <div style="font-weight: bold; margin-bottom: 5px;">✅ Credits Added!</div>
+        <div>+\${added} patches (Total: \${total})</div>
+      \`;
+      
+      document.body.appendChild(confirmEl);
+      
+      // Remove after 5 seconds
+      setTimeout(() => {
+        confirmEl.style.animation = 'slideOut 0.3s ease';
+        setTimeout(() => confirmEl.remove(), 300);
+      }, 5000);
+    }
+
+    // Show error message
+    function showCreditError() {
+      const errorEl = document.createElement('div');
+      errorEl.style.cssText = \`
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #e74c3c;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+        z-index: 1000;
+        box-shadow: 0 4px 20px rgba(231, 76, 60, 0.3);
+      \`;
+      
+      errorEl.innerHTML = \`
+        <div style="font-weight: bold; margin-bottom: 5px;">⚠️ Credit Error</div>
+        <div>Please contact support if credits don't appear</div>
+      \`;
+      
+      document.body.appendChild(errorEl);
+      
+      setTimeout(() => errorEl.remove(), 10000);
     }
 
     // Countdown timer
     function startCountdown() {
-      let count = ${generateErrorContent.name === 'generateErrorContent' ? '10' : '5'};
+      let count = 5;
       const countdownEl = document.getElementById('countdown');
       
       const timer = setInterval(() => {
@@ -269,6 +353,20 @@ function getPaymentSuccessScript() {
         }
       }, 1000);
     }
+
+    // Add CSS for animations
+    const style = document.createElement('style');
+    style.textContent = \`
+      @keyframes slideIn {
+        from { transform: translateX(100%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+      @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(100%); opacity: 0; }
+      }
+    \`;
+    document.head.appendChild(style);
 
     // Initialize when page loads
     window.addEventListener('load', () => {
