@@ -1,4 +1,4 @@
-// src/services/serverDataService.js - Server communication with fallbacks
+// src/services/serverDataService.js - FIXED with hybrid credit checking
 import { ClientDataService } from './clientDataService.js';
 
 export class ServerDataService {
@@ -96,27 +96,80 @@ export class ServerDataService {
     }
   }
 
-  // Check if user can make request (combines daily + extra credits)
+  // FIXED: Hybrid credit checking - checks both localStorage AND server
   static async canMakeRequest(sessionId) {
     try {
+      // Get server data
       const userData = await this.getUserData(sessionId);
       const dailyUsed = userData.usage.count;
       const dailyLimit = userData.usage.limit;
-      const extraCredits = userData.credits.extra;
+      let extraCredits = userData.credits.extra;
       
-      // Can make request if under daily limit OR have extra credits
-      const canUse = dailyUsed < dailyLimit || extraCredits > 0;
-      const willUseExtra = dailyUsed >= dailyLimit && extraCredits > 0;
+      // CRITICAL FIX: Also check localStorage for credits that haven't migrated yet
+      const localExtraCredits = parseInt(ClientDataService.safeGet('rp-extra-credits') || '0');
+      const localExpiry = ClientDataService.safeGet('rp-extra-credits-expiry');
+      
+      // Check if local credits are still valid
+      let validLocalCredits = 0;
+      if (localExtraCredits > 0 && localExpiry) {
+        const expiryTime = parseInt(localExpiry);
+        if (Date.now() < expiryTime) {
+          validLocalCredits = localExtraCredits;
+          console.log('🎯 Found valid local credits:', validLocalCredits);
+        } else {
+          console.log('⏰ Local credits expired');
+          // Clean up expired credits
+          ClientDataService.safeRemove('rp-extra-credits');
+          ClientDataService.safeRemove('rp-extra-credits-expiry');
+        }
+      }
+      
+      // Use the HIGHER of server credits or local credits
+      // This handles the race condition where credits are in localStorage but not yet migrated
+      const totalExtraCredits = Math.max(extraCredits, validLocalCredits);
+      
+      console.log('💳 Credit check:', {
+        serverCredits: extraCredits,
+        localCredits: validLocalCredits,
+        totalCredits: totalExtraCredits,
+        dailyUsed,
+        dailyLimit
+      });
+      
+      // Can make request if under daily limit OR have extra credits (from either source)
+      const canUse = dailyUsed < dailyLimit || totalExtraCredits > 0;
+      const willUseExtra = dailyUsed >= dailyLimit && totalExtraCredits > 0;
       
       return {
         allowed: canUse,
         willUseExtra,
         dailyRemaining: Math.max(0, dailyLimit - dailyUsed),
-        extraCredits
+        extraCredits: totalExtraCredits // Return the higher value
       };
     } catch (error) {
       console.error('Error checking request permission:', error);
-      return { allowed: false, willUseExtra: false, dailyRemaining: 0, extraCredits: 0 };
+      
+      // FALLBACK: If server check fails, check localStorage only
+      const localExtraCredits = parseInt(ClientDataService.safeGet('rp-extra-credits') || '0');
+      const localExpiry = ClientDataService.safeGet('rp-extra-credits-expiry');
+      
+      let hasLocalCredits = false;
+      if (localExtraCredits > 0 && localExpiry) {
+        const expiryTime = parseInt(localExpiry);
+        hasLocalCredits = Date.now() < expiryTime;
+      }
+      
+      console.log('⚠️ Using fallback credit check:', {
+        localCredits: localExtraCredits,
+        hasValidLocal: hasLocalCredits
+      });
+      
+      return { 
+        allowed: hasLocalCredits, 
+        willUseExtra: hasLocalCredits, 
+        dailyRemaining: 0, 
+        extraCredits: hasLocalCredits ? localExtraCredits : 0 
+      };
     }
   }
 }

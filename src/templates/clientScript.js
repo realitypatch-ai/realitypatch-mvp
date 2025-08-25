@@ -694,6 +694,15 @@ if (button) {
       return;
     }
     
+    // DEBUG: Log current state before permission check
+    console.log('🎯 Pre-request debug:', {
+      localCredits: localStorage.getItem('rp-extra-credits'),
+      localExpiry: localStorage.getItem('rp-extra-credits-expiry'),
+      expiryValid: localStorage.getItem('rp-extra-credits-expiry') ? 
+        Date.now() < parseInt(localStorage.getItem('rp-extra-credits-expiry')) : false,
+      sessionId: sessionId
+    });
+
     button.disabled = true;
     button.textContent = 'PROCESSING...';
     
@@ -704,12 +713,17 @@ if (button) {
     if (reminder) reminder.remove();
 
     try {
+      console.log('🔍 Checking permission...');
       const permissionCheck = await ServerDataService.canMakeRequest(sessionId);
-      
+      console.log('🎯 Permission check result:', permissionCheck);
+
       if (!permissionCheck.allowed) {
+        console.log('❌ Request denied - showing upgrade message');
         showUpgradeMessage();
         return;
       }
+      
+      console.log('✅ Request allowed, proceeding...');
       
       if (window.va) {
         window.va('track', 'RealityPatchRequest', { 
