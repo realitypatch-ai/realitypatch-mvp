@@ -338,7 +338,7 @@ async function initializeUserData() {
   }
 }
 
-// COMPLETELY REWRITTEN migration with robust error handling
+// FIXED client-side migration - only clears localStorage when safe
 async function migrateLegacyData() {
   const attempts = ClientDataService.incrementMigrationAttempts();
   
@@ -362,36 +362,102 @@ async function migrateLegacyData() {
     
     const migrationResult = await ServerDataService.migrateLegacyData(sessionId, legacyData);
     
-    // Check for successful migration
-    if (migrationResult && migrationResult.success) {
-      console.log('Migration successful, clearing localStorage:', migrationResult.migrated);
-      ClientDataService.clearLegacyData();
-      ClientDataService.clearMigrationAttempts();
-      showMigrationSuccessNotice(migrationResult.migrated);
+    // CRITICAL FIX: Only clear localStorage if server explicitly confirms success
+    if (migrationResult && migrationResult.success && !migrationResult.preserveLocalData) {
+      console.log('✅ Migration successful and verified, clearing localStorage:', migrationResult.migrated);
+      
+      // Additional verification: if credits were migrated, double-check server has them
+      if (migrationResult.migrated.extraCredits > 0) {
+        console.log('🔍 Verifying credits are in server before clearing localStorage...');
+        
+        try {
+          const userData = await ServerDataService.getUserData(sessionId);
+          if (userData.credits.extra >= migrationResult.migrated.extraCredits) {
+            console.log('✅ Credits verified in server database:', userData.credits.extra);
+            ClientDataService.clearLegacyData();
+            ClientDataService.clearMigrationAttempts();
+            showMigrationSuccessNotice(migrationResult.migrated);
+          } else {
+            console.error('❌ Credits not found in server, keeping localStorage:', {
+              expected: migrationResult.migrated.extraCredits,
+              found: userData.credits.extra
+            });
+            throw new Error('Credits not properly saved to server');
+          }
+        } catch (verifyError) {
+          console.error('❌ Failed to verify credits in server:', verifyError);
+          throw new Error('Could not verify credits were saved');
+        }
+      } else {
+        // No credits to verify, safe to clear
+        ClientDataService.clearLegacyData();
+        ClientDataService.clearMigrationAttempts();
+        showMigrationSuccessNotice(migrationResult.migrated);
+      }
     } else {
-      console.error('Migration response indicates failure:', migrationResult);
-      throw new Error('Migration response indicates failure');
+      console.error('❌ Migration response indicates failure or requests preserving local data:', migrationResult);
+      throw new Error('Migration failed or incomplete');
     }
   } catch (error) {
     console.error('Migration failed (attempt ' + attempts + '):', error);
     
-    // Specific error handling based on error type
+    // CRITICAL: Don't clear localStorage on error - preserve user's credits
     if (error.message.includes('500')) {
-      console.log('Server error detected - will retry next time');
-      showMigrationErrorNotice('Server error - your data is safe locally');
+      console.log('🛡️ Server error detected - preserving localStorage for retry');
+      showMigrationErrorNotice('Server error - your credits are safe locally');
     } else if (error.message.includes('400')) {
-      console.log('Client error detected - clearing invalid data');
-      ClientDataService.clearLegacyData();
-      ClientDataService.clearMigrationAttempts();
+      console.log('🛡️ Client error detected - but preserving data for manual review');
+      showMigrationErrorNotice('Data format error - credits preserved locally');
     } else if (attempts >= 3) {
-      console.log('Maximum attempts reached - giving up on migration');
+      console.log('🛡️ Maximum attempts reached - preserving localStorage');
       showMigrationSkippedNotice();
     } else {
-      console.log('Temporary error - will retry next time');
-      showMigrationErrorNotice('Temporary error - will retry later');
+      console.log('🛡️ Temporary error - preserving localStorage for retry');
+      showMigrationErrorNotice('Temporary error - credits safe, will retry');
     }
   }
 }
+
+// Enhanced status check for debugging
+async function debugCreditStatus() {
+  console.log('=== COMPREHENSIVE CREDIT DEBUG ===');
+  
+  // Check localStorage
+  const localCredits = parseInt(ClientDataService.safeGet('rp-extra-credits') || '0');
+  const localExpiry = ClientDataService.safeGet('rp-extra-credits-expiry');
+  const localValid = localExpiry ? Date.now() < parseInt(localExpiry) : false;
+  
+  console.log('localStorage credits:', {
+    amount: localCredits,
+    expiry: localExpiry ? new Date(parseInt(localExpiry)).toISOString() : 'none',
+    valid: localValid
+  });
+  
+  // Check server
+  try {
+    const userData = await ServerDataService.getUserData(sessionId);
+    console.log('Server credits:', {
+      amount: userData.credits.extra,
+      expiry: userData.credits.expiry ? new Date(userData.credits.expiry).toISOString() : 'none'
+    });
+    
+    console.log('Daily usage:', userData.usage.count + '/' + userData.usage.limit);
+    
+    // Test permission check
+    const permission = await ServerDataService.canMakeRequest(sessionId);
+    console.log('Permission check:', permission);
+    
+  } catch (error) {
+    console.error('Server check failed:', error);
+  }
+  
+  console.log('Migration attempts:', ClientDataService.getMigrationAttempts());
+  console.log('Has legacy data:', ClientDataService.hasLegacyData());
+  console.log('=================================');
+}
+
+// Add this to window for easy debugging
+window.debugCreditStatus = debugCreditStatus;
 
 // User notification functions for migration status
 function showMigrationSuccessNotice(migrated) {
@@ -724,7 +790,7 @@ if (button) {
       }
       
       console.log('✅ Request allowed, proceeding...');
-      
+
       if (window.va) {
         window.va('track', 'RealityPatchRequest', { 
           inputLength: text.length,
