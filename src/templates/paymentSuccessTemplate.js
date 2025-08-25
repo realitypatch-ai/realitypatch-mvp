@@ -124,11 +124,17 @@ export const generatePaymentSuccessHTML = (sessionId, success, isError = false) 
       <div class="card">
         ${isError ? generateErrorContent() : generateSuccessContent(sessionId)}
         
+        <!-- Creator Footer - Outside main card for clean UX -->
         <div class="creator-footer">
-          <div class="creator-info">Built by <span class="creator-name">Falah Faizal</span></div>
+          <div class="creator-info">
+            Built by <span class="creator-name">Falah Faizal</span> - Former procrastinator who got tired of his own excuses
+          </div>
+          <div class="creator-story">
+            "I built this because I needed it. Tired of gentle self-help that doesn't work."
+          </div>
           <div class="creator-contact">
             <a href="mailto:realitypatchai@gmail.com" class="contact-link">EMAIL</a>
-            <span class="creator-tagline">Questions about your purchase?</span>
+            <span class="creator-tagline">Questions? Feedback? Found a bug in reality?</span>
           </div>
         </div>
       </div>
