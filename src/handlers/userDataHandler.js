@@ -1,4 +1,4 @@
-// src/handlers/userDataHandler.js - Centralized user data endpoint
+// src/handlers/userDataHandler.js - FIXED migration handler
 import { DatabaseService } from '../services/databaseService.js';
 import { DATABASE_CONFIG } from '../config.js';
 
@@ -47,102 +47,232 @@ export const handleUserDataRequest = async (req, res) => {
   }
 };
 
-// Fixed userDataHandler.js migration section
+// COMPLETELY REWRITTEN migration handler with proper error handling
 export const handleMigrationRequest = async (req, res) => {
   let body = '';
-  req.on('data', chunk => { body += chunk; });
+  
+  req.on('data', chunk => { 
+    body += chunk; 
+  });
 
   req.on('end', async () => {
     try {
       const sessionId = req.headers['x-session-id'];
+      console.log('🔄 Migration request received for session:', sessionId?.substring(0, 20) + '...');
 
       if (!sessionId) {
+        console.error('❌ No session ID in migration request');
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Session ID required' }));
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Session ID required in X-Session-ID header' 
+        }));
         return;
       }
 
-      // Parse the request body
+      // Parse request body with validation
       let legacyData;
       try {
+        if (!body || body.trim() === '') {
+          console.error('❌ Empty request body in migration');
+          throw new Error('Empty request body');
+        }
         legacyData = JSON.parse(body);
       } catch (parseError) {
-        console.error('Failed to parse migration request body:', parseError);
+        console.error('❌ Failed to parse migration request body:', parseError.message);
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Invalid JSON in request body' }));
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Invalid JSON in request body',
+          details: parseError.message 
+        }));
         return;
       }
 
-      const { history, dailyUsage, extraCredits, creditsExpiry } = legacyData;
-
-      console.log('Processing data migration for session:', sessionId.substring(0, 20) + '...');
-      console.log('Migration data received:', {
-        historyCount: history?.length || 0,
-        extraCredits: extraCredits || 0,
-        dailyUsageCount: dailyUsage?.count || 0
+      console.log('📦 Migration data received:', {
+        historyCount: legacyData.history?.length || 0,
+        extraCredits: legacyData.extraCredits || 0,
+        dailyUsageCount: legacyData.dailyUsage?.count || 0,
+        creditsExpiry: legacyData.creditsExpiry ? 'present' : 'null'
       });
 
-      // Get existing user data
-      const userData = await DatabaseService.getUserData(sessionId);
-
-      // CRITICAL FIX: Check existing credits FIRST before migration
-      const existingCredits = await DatabaseService.getUserCredits(sessionId);
-      console.log('Existing credits before migration:', existingCredits.amount);
-
-      // Migrate history if provided and doesn't exist
-      if (history && history.length > 0 && (!userData.history || userData.history.length === 0)) {
-        userData.history = history;
-        console.log('Migrated history items:', history.length);
+      // Validate legacy data structure
+      if (!legacyData || typeof legacyData !== 'object') {
+        console.error('❌ Invalid legacy data structure');
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          success: false, 
+          error: 'Invalid legacy data structure' 
+        }));
+        return;
       }
 
-      // FIXED: Only migrate credits if user has NO existing credits
-      if (extraCredits > 0) {
-        if (existingCredits.amount === 0) {
-          await DatabaseService.addExtraCredits(sessionId, extraCredits, creditsExpiry);
-          console.log('Migrated extra credits:', extraCredits);
-        } else {
-          console.log('Skipping credit migration - user already has credits:', existingCredits.amount);
+      const { history = [], dailyUsage = {}, extraCredits = 0, creditsExpiry = null } = legacyData;
+
+      try {
+        // Get existing user data with error handling
+        console.log('📚 Fetching existing user data...');
+        const userData = await DatabaseService.getUserData(sessionId);
+        console.log('✅ Existing user data fetched, history count:', userData.history?.length || 0);
+
+        // Get existing credits to prevent overwriting
+        console.log('💳 Checking existing credits...');
+        const existingCredits = await DatabaseService.getUserCredits(sessionId);
+        console.log('💰 Existing credits:', existingCredits.amount);
+
+        let migratedItems = {
+          historyItems: 0,
+          extraCredits: 0,
+          dailyUsage: 0
+        };
+
+        // Migrate history ONLY if user has no existing history
+        if (Array.isArray(history) && history.length > 0) {
+          if (!userData.history || userData.history.length === 0) {
+            console.log('📝 Migrating history items:', history.length);
+            userData.history = history.map(item => ({
+              ...item,
+              migrated: true,
+              migratedAt: new Date().toISOString()
+            }));
+            migratedItems.historyItems = history.length;
+          } else {
+            console.log('📝 Skipping history migration - user already has history');
+          }
         }
-      }
 
-      // Migrate daily usage if provided
-      if (dailyUsage && dailyUsage.count > 0) {
-        const today = new Date().toISOString().split('T')[0];
-        const migrationDate = dailyUsage.lastReset || dailyUsage.date;
+        // Migrate extra credits ONLY if user has no existing credits AND legacy has credits
+        if (extraCredits > 0) {
+          if (existingCredits.amount === 0) {
+            console.log('💳 Migrating extra credits:', extraCredits);
+            
+            // Validate and parse expiry
+            let expiryDate = null;
+            if (creditsExpiry) {
+              try {
+                // Handle both timestamp and ISO string formats
+                const expiryTimestamp = typeof creditsExpiry === 'string' ? 
+                  (creditsExpiry.includes('T') ? new Date(creditsExpiry).getTime() : parseInt(creditsExpiry)) : 
+                  creditsExpiry;
+                
+                expiryDate = new Date(expiryTimestamp);
+                
+                // Validate the date
+                if (isNaN(expiryDate.getTime())) {
+                  console.warn('⚠️ Invalid expiry date, setting to 24 hours from now');
+                  expiryDate = new Date(Date.now() + (24 * 60 * 60 * 1000));
+                }
+              } catch (expiryError) {
+                console.warn('⚠️ Error parsing expiry date, setting to 24 hours from now:', expiryError.message);
+                expiryDate = new Date(Date.now() + (24 * 60 * 60 * 1000));
+              }
+            } else {
+              // Default to 24 hours if no expiry provided
+              expiryDate = new Date(Date.now() + (24 * 60 * 60 * 1000));
+            }
+
+            const hoursToExpiry = Math.max(1, Math.ceil((expiryDate.getTime() - Date.now()) / (1000 * 60 * 60)));
+            
+            const creditResult = await DatabaseService.addExtraCredits(sessionId, extraCredits, hoursToExpiry);
+            console.log('💳 Credit migration result:', creditResult);
+            migratedItems.extraCredits = extraCredits;
+          } else {
+            console.log('💳 Skipping credit migration - user already has credits:', existingCredits.amount);
+          }
+        }
+
+        // Migrate daily usage if provided and valid
+        if (dailyUsage && typeof dailyUsage === 'object' && dailyUsage.count > 0) {
+          const today = new Date().toISOString().split('T')[0];
+          const migrationDate = dailyUsage.lastReset || dailyUsage.date || today;
+          
+          // Only migrate if it's for today or user has no usage data
+          if (migrationDate === today || !userData.usage.lastReset) {
+            console.log('📊 Migrating daily usage:', dailyUsage.count);
+            userData.usage.count = Math.max(userData.usage.count || 0, dailyUsage.count);
+            userData.usage.lastReset = today;
+            migratedItems.dailyUsage = dailyUsage.count;
+          } else {
+            console.log('📊 Skipping daily usage migration - different date');
+          }
+        }
+
+        // Save migrated data with retries
+        console.log('💾 Saving migrated data...');
+        let saveAttempts = 0;
+        let saveSuccess = false;
         
-        if (migrationDate === today || !userData.usage.lastReset) {
-          userData.usage.count = Math.max(userData.usage.count, dailyUsage.count);
-          userData.usage.lastReset = today;
-          console.log('Migrated daily usage:', dailyUsage.count);
+        while (saveAttempts < 3 && !saveSuccess) {
+          try {
+            saveSuccess = await DatabaseService.saveUserData(sessionId, userData);
+            if (!saveSuccess) {
+              throw new Error('SaveUserData returned false');
+            }
+            console.log('✅ Data saved successfully on attempt:', saveAttempts + 1);
+          } catch (saveError) {
+            saveAttempts++;
+            console.error(`❌ Save attempt ${saveAttempts} failed:`, saveError.message);
+            if (saveAttempts < 3) {
+              console.log('🔄 Retrying save in 1 second...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
         }
+
+        if (!saveSuccess) {
+          throw new Error('Failed to save migrated data after 3 attempts');
+        }
+
+        // Return successful migration response
+        const response = {
+          success: true,
+          migrated: migratedItems,
+          message: `Successfully migrated ${migratedItems.historyItems} history items, ${migratedItems.extraCredits} credits, and ${migratedItems.dailyUsage} daily usage count`
+        };
+
+        console.log('✅ Migration completed successfully:', response);
+
+        res.writeHead(200, { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        });
+        res.end(JSON.stringify(response));
+
+      } catch (databaseError) {
+        console.error('❌ Database error during migration:', databaseError);
+        console.error('Database error stack:', databaseError.stack);
+        
+        // Don't return detailed database errors to client
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          success: false,
+          error: 'Database operation failed',
+          retryable: true // Client can retry
+        }));
       }
 
-      // Save migrated data
-      const saveResult = await DatabaseService.saveUserData(sessionId, userData);
-      if (!saveResult) {
-        throw new Error('Failed to save migrated data to database');
-      }
-
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        success: true, 
-        migrated: {
-          historyItems: history?.length || 0,
-          extraCredits: extraCredits || 0,
-          dailyUsage: dailyUsage?.count || 0
-        }
-      }));
-
-    } catch (error) {
-      console.error('Migration handler error:', error);
-      console.error('Error stack:', error.stack);
+    } catch (outerError) {
+      console.error('❌ Outer migration handler error:', outerError);
+      console.error('Outer error stack:', outerError.stack);
       
-      // Return detailed error for debugging
       res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        error: 'Migration failed',
-        details: error.message,
-        stack: error.stack
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Migration request failed',
+        details: outerError.message,
+        retryable: false
+      }));
+    }
+  });
+
+  // Add timeout handler for the request
+  req.on('error', (error) => {
+    console.error('❌ Request error in migration:', error);
+    if (!res.headersSent) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        success: false,
+        error: 'Request processing failed'
       }));
     }
   });

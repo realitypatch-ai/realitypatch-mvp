@@ -1,6 +1,6 @@
-// src/templates/clientScript.js - Complete client-side JavaScript
+// src/templates/clientScript.js - FIXED client migration logic
 export const getClientScript = () => `
-// ClientDataService implementation (inline)
+// ClientDataService implementation (inline) - UNCHANGED
 class ClientDataService {
   static SESSION_KEY = 'rp-session-id';
   static PREFERENCES_KEY = 'rp-preferences';
@@ -122,9 +122,29 @@ class ClientDataService {
     this.safeRemove('rp-extra-credits-expiry');
     this.safeRemove('rp-history-visible');
   }
+
+  // ADDED: Track migration attempts to prevent infinite loops
+  static getMigrationAttempts() {
+    try {
+      const attempts = this.safeGet('migration-attempts');
+      return attempts ? parseInt(attempts) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  static incrementMigrationAttempts() {
+    const current = this.getMigrationAttempts();
+    this.safeSet('migration-attempts', (current + 1).toString());
+    return current + 1;
+  }
+
+  static clearMigrationAttempts() {
+    this.safeRemove('migration-attempts');
+  }
 }
 
-// ServerDataService implementation (inline)
+// ServerDataService implementation - FIXED migration logic
 class ServerDataService {
   static async getUserData(sessionId) {
     try {
@@ -135,7 +155,6 @@ class ServerDataService {
       if (!response.ok) throw new Error('Server error: ' + response.status);
       
       const data = await response.json();
-      
       ClientDataService.cacheData('userData', data, 15);
       
       return data;
@@ -188,9 +207,14 @@ class ServerDataService {
     }
   }
 
+  // COMPLETELY REWRITTEN migration with proper error handling
   static async migrateLegacyData(sessionId, legacyData) {
     try {
-      console.log('Migrating legacy data to server...');
+      console.log('Migrating legacy data to server...', {
+        historyItems: legacyData.history?.length || 0,
+        extraCredits: legacyData.extraCredits || 0,
+        dailyUsage: legacyData.dailyUsage?.count || 0
+      });
       
       const response = await fetch('/api/migrate-data', {
         method: 'POST',
@@ -201,11 +225,21 @@ class ServerDataService {
         body: JSON.stringify(legacyData)
       });
 
-      if (!response.ok) throw new Error('Migration failed: ' + response.status);
+      // Parse response regardless of status code
+      let result;
+      try {
+        result = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse migration response:', parseError);
+        throw new Error('Invalid server response format');
+      }
+
+      if (!response.ok) {
+        console.error('Migration request failed:', response.status, result);
+        throw new Error('Migration server error: ' + response.status + ' - ' + (result.error || 'Unknown error'));
+      }
       
-      const result = await response.json();
       console.log('Migration successful:', result);
-      
       return result;
     } catch (error) {
       console.error('Migration failed:', error);
@@ -236,7 +270,7 @@ class ServerDataService {
   }
 }
 
-// DOM elements
+// DOM elements - UNCHANGED
 const button = document.getElementById('patchBtn');
 const textarea = document.getElementById('userInput');
 const output = document.getElementById('output');
@@ -245,47 +279,51 @@ const historySection = document.getElementById('historySection');
 const startAnalysisBtn = document.getElementById('startAnalysisBtn');
 const mainInputSection = document.getElementById('mainInputSection');
 
-// Demo section interaction
+// Demo section interaction - UNCHANGED
 if (startAnalysisBtn) {
   startAnalysisBtn.addEventListener('click', () => {
-    // Hide demo section and show main input
     document.querySelector('.demo-section').style.display = 'none';
     mainInputSection.style.display = 'block';
     
-    // Trigger the show animation
     setTimeout(() => {
       mainInputSection.classList.add('show');
-      // Focus on textarea for immediate interaction
       textarea.focus();
     }, 100);
     
-    // Track demo conversion
     if (window.va) {
       window.va('track', 'DemoToInputConversion');
     }
   });
 }
 
-// Session management
+// Session management - UNCHANGED
 let sessionId = ClientDataService.getOrCreateSessionId();
 let userData = null;
 
-// Load user data on page load
+// Load user data on page load - UNCHANGED
 window.addEventListener('load', async () => {
   await initializeUserData();
 });
 
+// COMPLETELY REWRITTEN initialization with robust migration
 async function initializeUserData() {
   try {
-    // Check for legacy data migration
+    // Check for legacy data migration with attempt limiting
     if (ClientDataService.hasLegacyData()) {
-      await migrateLegacyData();
+      const attempts = ClientDataService.getMigrationAttempts();
+      console.log('Migration attempts so far:', attempts);
+      
+      if (attempts >= 3) {
+        console.warn('Maximum migration attempts reached, proceeding without migration');
+        showMigrationSkippedNotice();
+        // Don't clear data, just proceed
+      } else {
+        await migrateLegacyData();
+      }
     }
     
     // Load user data from server
     userData = await ServerDataService.getUserData(sessionId);
-    
-    // Update UI
     updateUIWithUserData(userData);
     
   } catch (error) {
@@ -300,85 +338,112 @@ async function initializeUserData() {
   }
 }
 
-// Add this function to show migration errors to users
-function showMigrationError() {
-  const errorHtml = '<div id="migration-error" class="migration-error" style="' +
-    'background: #ff3366; color: white; padding: 10px; border-radius: 4px; ' +
-    'margin: 10px 0; font-size: 14px; display: flex; justify-content: space-between; align-items: center;">' +
-    '<span>⚠️ Failed to sync your data to server. Your credits are safe locally.</span>' +
-    '<button onclick="this.parentElement.remove()" style="' +
-    'background: none; border: none; color: white; cursor: pointer; padding: 0 5px; font-size: 16px;">×</button>' +
-    '</div>';
-  
-  const header = document.querySelector('.header');
-  if (header && !document.getElementById('migration-error')) {
-    header.insertAdjacentHTML('afterend', errorHtml);
-    
-    // Auto-remove after 10 seconds
-    setTimeout(() => {
-      const errorEl = document.getElementById('migration-error');
-      if (errorEl) errorEl.remove();
-    }, 10000);
-  }
-}
-
+// COMPLETELY REWRITTEN migration with robust error handling
 async function migrateLegacyData() {
+  const attempts = ClientDataService.incrementMigrationAttempts();
+  
   try {
-    console.log('Migrating legacy localStorage data...');
+    console.log('Migration attempt:', attempts);
     const legacyData = ClientDataService.getLegacyData();
     
-    if (legacyData.history.length > 0 || legacyData.extraCredits > 0) {
-      console.log('📤 Sending migration data:', {
-        historyItems: legacyData.history.length,
-        extraCredits: legacyData.extraCredits,
-        dailyUsage: legacyData.dailyUsage?.count || 0
-      });
-      
-      const migrationResult = await ServerDataService.migrateLegacyData(sessionId, legacyData);
-      
-      // CRITICAL FIX: Only clear on successful migration
-      if (migrationResult && migrationResult.success) {
-        console.log('✅ Migration successful, clearing localStorage:', migrationResult.migrated);
-        ClientDataService.clearLegacyData();
-        console.log('🧹 localStorage cleared successfully');
-      } else {
-        console.error('❌ Migration failed, keeping localStorage data');
-        throw new Error('Migration response indicates failure');
-      }
+    // Only attempt migration if there's actual data
+    if (legacyData.history.length === 0 && legacyData.extraCredits === 0 && (!legacyData.dailyUsage.count || legacyData.dailyUsage.count === 0)) {
+      console.log('No meaningful legacy data to migrate, clearing localStorage');
+      ClientDataService.clearLegacyData();
+      ClientDataService.clearMigrationAttempts();
+      return;
+    }
+
+    console.log('Sending migration data:', {
+      historyItems: legacyData.history.length,
+      extraCredits: legacyData.extraCredits,
+      dailyUsage: legacyData.dailyUsage?.count || 0
+    });
+    
+    const migrationResult = await ServerDataService.migrateLegacyData(sessionId, legacyData);
+    
+    // Check for successful migration
+    if (migrationResult && migrationResult.success) {
+      console.log('Migration successful, clearing localStorage:', migrationResult.migrated);
+      ClientDataService.clearLegacyData();
+      ClientDataService.clearMigrationAttempts();
+      showMigrationSuccessNotice(migrationResult.migrated);
     } else {
-      console.log('📭 No legacy data to migrate');
+      console.error('Migration response indicates failure:', migrationResult);
+      throw new Error('Migration response indicates failure');
     }
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error('Migration failed (attempt ' + attempts + '):', error);
     
-    // CRITICAL FIX: Don't clear localStorage on failure
-    // Only clear if we get a specific server error that indicates data corruption
-    if (error.message.includes('500') && error.message.includes('database')) {
-      console.log('🧹 Clearing localStorage due to server database error to prevent loop');
+    // Specific error handling based on error type
+    if (error.message.includes('500')) {
+      console.log('Server error detected - will retry next time');
+      showMigrationErrorNotice('Server error - your data is safe locally');
+    } else if (error.message.includes('400')) {
+      console.log('Client error detected - clearing invalid data');
       ClientDataService.clearLegacyData();
+      ClientDataService.clearMigrationAttempts();
+    } else if (attempts >= 3) {
+      console.log('Maximum attempts reached - giving up on migration');
+      showMigrationSkippedNotice();
     } else {
-      console.log('💾 Keeping localStorage data - user can retry migration later');
-      
-      // Show user a non-intrusive error message
-      showMigrationError();
+      console.log('Temporary error - will retry next time');
+      showMigrationErrorNotice('Temporary error - will retry later');
     }
   }
 }
 
+// User notification functions for migration status
+function showMigrationSuccessNotice(migrated) {
+  if (migrated.extraCredits > 0 || migrated.historyItems > 0) {
+    const message = 'Data synced: ' + 
+      (migrated.extraCredits > 0 ? migrated.extraCredits + ' credits' : '') +
+      (migrated.historyItems > 0 ? (migrated.extraCredits > 0 ? ', ' : '') + migrated.historyItems + ' history items' : '');
+    
+    showNotice(message, 'success', 5000);
+  }
+}
+
+function showMigrationErrorNotice(message) {
+  showNotice('Sync issue: ' + message, 'warning', 8000);
+}
+
+function showMigrationSkippedNotice() {
+  showNotice('Using local data - sync will be attempted later', 'info', 6000);
+}
+
+function showNotice(message, type = 'info', duration = 5000) {
+  const colors = {
+    success: '#2ecc71',
+    warning: '#f39c12',
+    error: '#e74c3c',
+    info: '#3498db'
+  };
+
+  const notice = document.createElement('div');
+  notice.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + colors[type] + '; color: white; padding: 12px 16px; border-radius: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-width: 300px; cursor: pointer;';
+  notice.textContent = message;
+  notice.onclick = () => notice.remove();
+  
+  document.body.appendChild(notice);
+  
+  setTimeout(() => {
+    if (notice.parentNode) notice.remove();
+  }, duration);
+}
+
+// Rest of functions remain UNCHANGED...
 function updateUIWithUserData(data) {
   if (!data) return;
   
-  // Show history if exists
   if (data.history && data.history.length > 0) {
     showHistorySection(data.history);
     
-    // Check for pending assignments
     const pendingAssignments = getPendingAssignments(data.history);
     if (pendingAssignments.length > 0) {
       showAssignmentReminder(pendingAssignments);
     }
     
-    // Skip demo, show main input
     const demoSection = document.querySelector('.demo-section');
     if (demoSection) demoSection.style.display = 'none';
     if (mainInputSection) {
@@ -387,10 +452,7 @@ function updateUIWithUserData(data) {
     }
   }
   
-  // Update credits display
   updateCreditsDisplay(data.credits);
-  
-  // Update usage info
   updateUsageDisplay(data.usage);
 }
 
@@ -417,7 +479,6 @@ function updateCreditsDisplay(credits) {
 }
 
 function updateUsageDisplay(usage) {
-  // Update any usage display elements
   console.log('Daily usage:', usage.count, '/', usage.limit);
 }
 
@@ -442,7 +503,6 @@ function showUpgradeMessage() {
   resultContent.innerHTML = upgradeHtml;
   output.classList.add('show');
   
-  // Start countdown to midnight reset
   startResetCountdown();
 }
 
@@ -467,11 +527,9 @@ function startResetCountdown() {
   updateCountdown();
   const timer = setInterval(updateCountdown, 1000);
   
-  // Clear timer when user navigates away
   window.addEventListener('beforeunload', () => clearInterval(timer));
 }
 
-// Helper function to get pending assignments from history
 function getPendingAssignments(history) {
   const now = Date.now();
   return history
@@ -479,14 +537,14 @@ function getPendingAssignments(history) {
       item.response && 
       item.response.includes('Your assignment:') && 
       !item.isFollowUp &&
-      !item.completed // Only show incomplete assignments
+      !item.completed
     )
     .map(item => {
       const timeSince = now - new Date(item.timestamp).getTime();
       const hoursSince = Math.floor(timeSince / (1000 * 60 * 60));
       return Object.assign({}, item, { hoursSince: hoursSince });
     })
-    .filter(item => item.hoursSince >= 12); // Only show assignments that are 12+ hours old
+    .filter(item => item.hoursSince >= 12);
 }
 
 function showAssignmentReminder(pendingAssignments) {
@@ -526,7 +584,6 @@ function showHistorySection(history) {
   historyContent.innerHTML = history.slice(-3).reverse().map(function(item, index) {
     const followUpBadge = item.isFollowUp ? '<span class="follow-up-badge">FOLLOW-UP</span>' : '';
     
-    // Enhanced assignment badge with completion status
     let assignmentBadge = '';
     if (item.response && item.response.includes('Your assignment:') && !item.isFollowUp) {
       if (item.completed) {
@@ -551,7 +608,6 @@ function showHistorySection(history) {
     historySection.style.display = 'block';
   }
   
-  // Check user's saved preference, default to visible for new users
   const savedState = localStorage.getItem('rp-history-visible');
   const shouldShow = savedState === null ? true : savedState === 'true';
   
@@ -573,7 +629,6 @@ window.toggleHistory = function() {
   
   if (!content || !toggle) return;
   
-  // Check actual computed display style
   const isCurrentlyVisible = window.getComputedStyle(content).display !== 'none';
   
   if (isCurrentlyVisible) {
@@ -587,7 +642,6 @@ window.toggleHistory = function() {
   }
 }
 
-// Update assignment completion to work with server data
 function markAssignmentCompletedLocally(completedAssignmentId) {
   if (!userData || !userData.history) return;
   
@@ -601,13 +655,11 @@ function markAssignmentCompletedLocally(completedAssignmentId) {
     assignment.completedAt = new Date().toISOString();
     showHistorySection(userData.history);
     
-    // Remove reminder
     const reminder = document.getElementById('assignment-reminder');
     if (reminder) reminder.remove();
   }
 }
 
-// Example buttons functionality (only when main input is visible)
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.example-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -616,11 +668,9 @@ document.addEventListener('DOMContentLoaded', function() {
         textarea.focus();
       }
       
-      // Remove assignment reminder if it exists
       const reminder = document.getElementById('assignment-reminder');
       if (reminder) reminder.remove();
 
-      // Track example button clicks
       if (window.va) {
         window.va('track', 'ExampleButtonClick', { example: btn.dataset.example });
       }
@@ -628,7 +678,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Auto-resize textarea (only when visible)
 if (textarea) {
   textarea.addEventListener('input', () => {
     textarea.style.height = 'auto';
@@ -637,7 +686,6 @@ if (textarea) {
   });
 }
 
-// Enhanced button click with proper credit system integration
 if (button) {
   button.addEventListener('click', async () => {
     const text = textarea.value.trim();
@@ -649,16 +697,13 @@ if (button) {
     button.disabled = true;
     button.textContent = 'PROCESSING...';
     
-    // Show loading
     output.classList.add('show');
     resultContent.innerHTML = '<div class="loading">&gt; Analyzing psychological patterns<span class="loading-dots"></span></div>';
 
-    // Remove assignment reminder
     const reminder = document.getElementById('assignment-reminder');
     if (reminder) reminder.remove();
 
     try {
-      // Check if can make request
       const permissionCheck = await ServerDataService.canMakeRequest(sessionId);
       
       if (!permissionCheck.allowed) {
@@ -666,7 +711,6 @@ if (button) {
         return;
       }
       
-      // Track request
       if (window.va) {
         window.va('track', 'RealityPatchRequest', { 
           inputLength: text.length,
@@ -674,7 +718,6 @@ if (button) {
         });
       }
       
-      // Submit to server
       const response = await ServerDataService.submitPatch(sessionId, text);
       
       if (response.limitReached) {
@@ -682,20 +725,16 @@ if (button) {
         return;
       }
       
-      // Update local user data
       if (response.userData) {
         userData = response.userData;
         updateUIWithUserData(userData);
       }
       
-      // Handle assignment completion
       if (response.completedAssignmentId) {
         markAssignmentCompletedLocally(response.completedAssignmentId);
       }
       
-      // Typewriter effect
       typewriterEffect(response.patch, () => {
-        // Add status message after typewriter
         setTimeout(() => {
           const statusHtml = response.isFollowUp 
             ? '<div class="status-message follow-up">Progress tracking activated.</div>'
@@ -704,17 +743,14 @@ if (button) {
           resultContent.innerHTML += statusHtml;
         }, 1000);
         
-        // Update history display
         if (userData && userData.history) {
           showHistorySection(userData.history);
         }
         
-        // Clear textarea
         textarea.value = '';
         textarea.style.height = '120px';
       });
       
-      // Track success
       if (window.va) {
         window.va('track', 'RealityPatchDelivered', { 
           isFollowUp: response.isFollowUp 
@@ -750,7 +786,6 @@ function typewriterEffect(text, callback) {
   }, 20);
 }
 
-// Track page views
 if (window.va) {
   window.va('track', 'PageView');
 }
