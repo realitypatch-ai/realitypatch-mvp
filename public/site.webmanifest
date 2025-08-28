@@ -1,0 +1,20 @@
+{
+  "name": "RealityPatch",
+  "short_name": "RealityPatch", 
+  "description": "AI Psychological Debugger",
+  "theme_color": "#00ff66",
+  "background_color": "#0a0a0a",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/android-chrome-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
