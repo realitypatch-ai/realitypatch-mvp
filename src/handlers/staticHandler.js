@@ -38,8 +38,10 @@ export const handleStaticRequest = async (req, res) => {
   
   if (isStaticFile) {
     // Use process.cwd() for Vercel production compatibility - files in root
-    const filePath = join(process.cwd(), url.substring(1)); // Remove leading slash
+    const fileName = url.substring(1); // Remove leading slash from "/favicon.ico" → "favicon.ico"
+    const filePath = join(process.cwd(), fileName);
     console.log('Looking for static file at:', filePath); // Debug log
+    console.log('Current working directory:', process.cwd()); // Debug log
     
     try {
       if (existsSync(filePath)) {
