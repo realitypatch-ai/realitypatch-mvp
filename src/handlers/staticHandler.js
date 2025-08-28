@@ -37,8 +37,8 @@ export const handleStaticRequest = async (req, res) => {
                        url.startsWith('/android-chrome');
   
   if (isStaticFile) {
-    // Use process.cwd() for Vercel production compatibility
-    const filePath = join(process.cwd(), 'public', url);
+    // Use process.cwd() for Vercel production compatibility - files in root
+    const filePath = join(process.cwd(), url.substring(1)); // Remove leading slash
     console.log('Looking for static file at:', filePath); // Debug log
     
     try {
