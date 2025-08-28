@@ -45,7 +45,7 @@ function addStatsBarToMainInterface() {
     '<div id="main-stats-bar" class="main-stats-bar">' +
       '<div class="stat-item">Analysis <span class="stat-number">#1,247</span> today</div>' +
       '<div class="stat-item">Avg response: <span class="stat-number">23</span> seconds</div>' +
-      '<div class="stat-item">No signup required</div>' +
+      '<div class="stat-item">No signup</div>' +
     '</div>';
   
   // Insert after the terminal prompt but before input section

@@ -34,7 +34,7 @@ export const generateHTML = (cssContent = '') => {
           <div class="stats-bar">
             <div class="stat-item">Analysis <span class="stat-number">#1,247</span> today</div>
             <div class="stat-item">Avg response: <span class="stat-number">23</span> seconds</div>
-            <div class="stat-item">No signup required</div>
+            <div class="stat-item">No signup</div>
           </div>
           
           <div class="outcomes-section">
