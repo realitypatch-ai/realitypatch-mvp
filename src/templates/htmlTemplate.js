@@ -26,7 +26,7 @@ export const generateHTML = (cssContent = '') => {
         <div class="header">
           <div class="subtitle">&gt; PSYCHOLOGICAL DEBUGGER</div>
           <h1>RealityPatch<span class="cursor">_</span></h1>
-          <div class="tagline">Exposing self-sabotage patterns</div>
+          <div class="tagline">Identify what's really holding you back</div>
         </div>
 
         <!-- NEW: First-time user experience section -->
@@ -92,17 +92,17 @@ export const generateHTML = (cssContent = '') => {
           
           <div class="input-section">
             <div class="input-label">Input Buffer:</div>
-            <textarea id="userInput" placeholder="Describe your recurring problem... be brutally honest about what you keep doing or telling yourself.
+            <textarea id="userInput" placeholder="Describe what you've been stuck on or putting off...
 
 Examples:
-• I keep starting projects but abandoning them
-• I want to start a business but I'm waiting for the perfect idea  
-• I know what I should do but I can't seem to do it
-• I always attract toxic people in relationships" rows="5"></textarea>
+- I keep starting projects but don't finish them
+- I want to start a business but keep waiting for clarity  
+- I know what would help but struggle to take action
+- I notice patterns in my relationships that don't work" rows="5"></textarea>
           </div>
 
           <button id="patchBtn" class="analyze-btn">
-            ANALYZE PATTERN
+            GET MY ANALYSIS
           </button>
 
           <div id="output">
@@ -116,17 +116,17 @@ Examples:
 
           <div class="examples">
             <div class="examples-header">&gt; SAMPLE_INPUTS.TXT</div>
-            <button class="example-btn" data-example="I keep starting projects but never finish them">
-              &gt; Projects I abandon halfway through
+            <button class="example-btn" data-example="I keep starting projects but struggle to finish them">
+              &gt; Starting but not completing projects
             </button>
-            <button class="example-btn" data-example="I want to start a business but I'm waiting for the perfect idea">
-              &gt; Waiting for the "perfect" business idea
+            <button class="example-btn" data-example="I want to start a business but keep waiting for more clarity">
+              &gt; Waiting for the "right" business idea
             </button>
-            <button class="example-btn" data-example="I know what I should do but I just can't seem to do it">
-              &gt; Knowledge without action problem
+            <button class="example-btn" data-example="I know what would help but find it hard to take action">
+              &gt; Knowing what to do but not doing it
             </button>
-            <button class="example-btn" data-example="I always attract the wrong kind of people in relationships">
-              &gt; Toxic relationship patterns
+            <button class="example-btn" data-example="I notice unhelpful patterns in my relationships">
+              &gt; Recurring relationship challenges
             </button>
           </div>
         </div>
@@ -147,10 +147,10 @@ Examples:
       <!-- Creator Footer - Outside main card for clean UX -->
       <div class="creator-footer">
         <div class="creator-info">
-          Built by <span class="creator-name">Falah Faizal</span> - Former procrastinator who got tired of his own excuses
+          Built by <span class="creator-name">Falah Faizal</span> - Someone who got tired of staying stuck
         </div>
         <div class="creator-story">
-          "I built this because I needed it. Tired of gentle self-help that doesn't work."
+          "I built this because I needed it. Sometimes we need clarity more than comfort."
         </div>
         <div class="creator-contact">
           <a href="mailto:realitypatchai@gmail.com" class="contact-link">EMAIL</a>

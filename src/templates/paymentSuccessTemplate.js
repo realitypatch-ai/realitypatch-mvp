@@ -127,10 +127,10 @@ export const generatePaymentSuccessHTML = (sessionId, success, isError = false) 
         <!-- Creator Footer - Outside main card for clean UX -->
         <div class="creator-footer">
           <div class="creator-info">
-            Built by <span class="creator-name">Falah Faizal</span> - Former procrastinator who got tired of his own excuses
+            Built by <span class="creator-name">Falah Faizal</span> - Someone who got tired of staying stuck
           </div>
           <div class="creator-story">
-            "I built this because I needed it. Tired of gentle self-help that doesn't work."
+            "I built this because I needed it. Sometimes we need clarity more than comfort."
           </div>
           <div class="creator-contact">
             <a href="mailto:realitypatchai@gmail.com" class="contact-link">EMAIL</a>
@@ -153,12 +153,12 @@ function generateSuccessContent(sessionId) {
       <div class="success-icon">✓</div>
       <div class="subtitle">PAYMENT PROCESSED</div>
       <h1>Credits Added<span class="cursor">_</span></h1>
-      <div class="tagline">Ready for more brutal truth</div>
+      <div class="tagline">Ready for more insights</div>
     </div>
 
     <div class="success-message">
       <h3>Payment Successful!</h3>
-      <p>Your extra RealityPatch credits have been added to your account.</p>
+      <p>Your additional analysis credits have been added to your account.</p>
     </div>
 
     <div class="credits-added">
@@ -184,7 +184,7 @@ function generateSuccessContent(sessionId) {
     </div>
 
     <a href="/" class="continue-btn" id="continueBtn">
-      START ANALYZING NOW
+      CONTINUE WITH ANALYSIS
     </a>
   `;
 }
@@ -215,7 +215,7 @@ function generateErrorContent() {
     </div>
 
     <a href="/" class="continue-btn" id="continueBtn">
-      RETURN TO REALITYPATCH
+      RETURN TO ANALYSIS
     </a>
   `;
 }

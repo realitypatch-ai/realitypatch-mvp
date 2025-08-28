@@ -702,7 +702,7 @@ async function handlePatchSubmission() {
     resultContent.innerHTML = '<div class="error">&gt; ERROR: ' + error.message + '</div>';
   } finally {
     button.disabled = false;
-    button.textContent = 'ANALYZE PATTERN';
+    button.textContent = 'GET MY ANALYSIS';
   }
 }
 
