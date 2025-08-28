@@ -1,7 +1,6 @@
 // src/handlers/staticHandler.js - Handle static content (HTML/CSS/Assets)
 import { readFileSync, existsSync } from 'node:fs';
 import { join, extname } from 'node:path';
-import { __dirname } from '../../server.js';
 import { generateHTML } from '../templates/htmlTemplate.js';
 
 // MIME types for static files
@@ -38,7 +37,8 @@ export const handleStaticRequest = async (req, res) => {
                        url.startsWith('/android-chrome');
   
   if (isStaticFile) {
-    const filePath = join(__dirname, 'public', url);
+    // Use process.cwd() for Vercel production compatibility
+    const filePath = join(process.cwd(), 'public', url);
     console.log('Looking for static file at:', filePath); // Debug log
     
     try {
@@ -73,7 +73,8 @@ export const handleStaticRequest = async (req, res) => {
   
   let cssContent = '';
   try {
-    cssContent = readFileSync(join(__dirname, 'styles.css'), 'utf8');
+    // Also use process.cwd() for CSS file
+    cssContent = readFileSync(join(process.cwd(), 'styles.css'), 'utf8');
     console.log('CSS file loaded successfully, length:', cssContent.length);
   } catch (error) {
     console.error('Error loading CSS file:', error.message);
