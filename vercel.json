@@ -8,8 +8,42 @@
   ],
   "routes": [
     {
+      "src": "/favicon\\.ico",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/favicon-.*\\.png",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/apple-touch-icon\\.png",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/android-chrome-.*\\.png",
+      "dest": "/server.js"
+    },
+    {
+      "src": "/site\\.webmanifest",
+      "dest": "/server.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/server.js"
     }
-  ]
+  ],
+  "functions": {
+    "server.js": {
+      "includeFiles": [
+        "favicon.ico",
+        "favicon-16x16.png",
+        "favicon-32x32.png", 
+        "apple-touch-icon.png",
+        "android-chrome-192x192.png",
+        "android-chrome-512x512.png",
+        "site.webmanifest",
+        "styles.css"
+      ]
+    }
+  }
 }

@@ -37,37 +37,50 @@ export const handleStaticRequest = async (req, res) => {
                        url.startsWith('/android-chrome');
   
   if (isStaticFile) {
-    // Use process.cwd() for Vercel production compatibility - files in root
+    // Try both public directory and root for compatibility
     const fileName = url.substring(1); // Remove leading slash from "/favicon.ico" → "favicon.ico"
-    const filePath = join(process.cwd(), fileName);
-    console.log('Looking for static file at:', filePath); // Debug log
+    const publicPath = join(process.cwd(), 'public', fileName);
+    const rootPath = join(process.cwd(), fileName);
+    
+    console.log('Looking for static file at:', publicPath, 'or', rootPath); // Debug log
     console.log('Current working directory:', process.cwd()); // Debug log
     
     try {
-      if (existsSync(filePath)) {
-        const fileContent = readFileSync(filePath);
-        const ext = extname(url).toLowerCase();
-        const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
-        
-        console.log('Serving static file:', url, 'as', mimeType); // Debug log
-        
-        res.writeHead(200, { 
-          'Content-Type': mimeType,
-          'Cache-Control': 'public, max-age=31536000'
-        });
-        res.end(fileContent);
-        return;
+      let filePath;
+      let fileContent;
+      
+      // Try public directory first (Vercel best practice)
+      if (existsSync(publicPath)) {
+        filePath = publicPath;
+        fileContent = readFileSync(publicPath);
+      } else if (existsSync(rootPath)) {
+        filePath = rootPath;
+        fileContent = readFileSync(rootPath);
       } else {
-        console.log('Static file not found:', filePath); // Debug log
+        console.log('Static file not found at either location:', publicPath, rootPath);
+        res.writeHead(404, { 'Content-Type': 'text/plain' });
+        res.end('File not found');
+        return;
       }
+      
+      const ext = extname(url).toLowerCase();
+      const mimeType = MIME_TYPES[ext] || 'application/octet-stream';
+      
+      console.log('Serving static file:', url, 'from', filePath, 'as', mimeType); // Debug log
+      
+      res.writeHead(200, { 
+        'Content-Type': mimeType,
+        'Cache-Control': 'public, max-age=31536000'
+      });
+      res.end(fileContent);
+      return;
+      
     } catch (error) {
       console.error(`Error serving static file ${url}:`, error);
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('File not found');
+      return;
     }
-    
-    // File not found
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('File not found');
-    return;
   }
   
   // Handle main HTML page for all other requests
@@ -75,8 +88,16 @@ export const handleStaticRequest = async (req, res) => {
   
   let cssContent = '';
   try {
-    // Also use process.cwd() for CSS file
-    cssContent = readFileSync(join(process.cwd(), 'styles.css'), 'utf8');
+    // Try public directory first, then root
+    const publicCssPath = join(process.cwd(), 'public', 'styles.css');
+    const rootCssPath = join(process.cwd(), 'styles.css');
+    
+    if (existsSync(publicCssPath)) {
+      cssContent = readFileSync(publicCssPath, 'utf8');
+    } else if (existsSync(rootCssPath)) {
+      cssContent = readFileSync(rootCssPath, 'utf8');
+    }
+    
     console.log('CSS file loaded successfully, length:', cssContent.length);
   } catch (error) {
     console.error('Error loading CSS file:', error.message);
