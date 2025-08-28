@@ -953,6 +953,31 @@ textarea::placeholder {
   font-size: 12px;
 }
 
+.older-history-section {
+  margin-top: 20px;
+  border-top: 1px solid var(--accent-dim);
+  padding-top: 15px;
+}
+
+.older-history-toggle {
+  cursor: pointer;
+  padding: 8px 0;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.older-history-toggle:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent-dim);
+}
+
+.older-history-content {
+  margin-top: 15px;
+}
+
 /* FIXED: Responsive styles with better spacing control */
 @media (max-width: 640px) {
     .card {

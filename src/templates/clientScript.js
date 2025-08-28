@@ -552,7 +552,6 @@ function updateUIWithUserData(data) {
   updateCreditsDisplay(data.credits);
 }
 
-// [Rest of functions remain the same - showHistorySection, updateCreditsDisplay, etc.]
 function showHistorySection(history) {
   const historyCount = document.getElementById('historyCount');
   if (historyCount) {
@@ -562,7 +561,8 @@ function showHistorySection(history) {
   const historyContent = document.getElementById('history-content');
   if (!historyContent) return;
   
-  historyContent.innerHTML = history.slice(-3).reverse().map(function(item, index) {
+  // Helper function to render history items
+  function renderHistoryItem(item, index) {
     const followUpBadge = item.isFollowUp ? '<span class="follow-up-badge">FOLLOW-UP</span>' : '';
     
     let assignmentBadge = '';
@@ -579,10 +579,51 @@ function showHistorySection(history) {
       '<div class="history-response">' + item.response + '</div>' +
       '<div class="history-timestamp">' + new Date(item.timestamp).toLocaleDateString() + '</div>' +
       '</div>';
-  }).join('');
+  }
+  
+  // Split history into recent (last 3) and older
+  const recentHistory = history.slice(-3).reverse();
+  const olderHistory = history.slice(0, -3).reverse();
+  
+  // Render recent history
+  let historyHTML = recentHistory.map(renderHistoryItem).join('');
+  
+  // Add expandable older section if exists
+  if (olderHistory.length > 0) {
+    historyHTML += 
+      '<div class="older-history-section">' +
+        '<div class="older-history-toggle" onclick="toggleOlderHistory()">' +
+          '<span id="older-history-indicator" data-count="' + olderHistory.length + '">&gt; Show ' + olderHistory.length + ' older patches</span>' +
+        '</div>' +
+        '<div class="older-history-content" id="older-history-content" style="display: none;">' +
+          olderHistory.map(renderHistoryItem).join('') +
+        '</div>' +
+      '</div>';
+  }
+  
+  historyContent.innerHTML = historyHTML;
   
   if (historySection) {
     historySection.style.display = 'block';
+  }
+}
+
+// Updated toggle function
+window.toggleOlderHistory = function() {
+  const content = document.getElementById('older-history-content');
+  const indicator = document.getElementById('older-history-indicator');
+  
+  if (!content || !indicator) return;
+  
+  const isCurrentlyVisible = content.style.display !== 'none';
+  const count = indicator.getAttribute('data-count');
+  
+  if (isCurrentlyVisible) {
+    content.style.display = 'none';
+    indicator.textContent = '> Show ' + count + ' older patches';
+  } else {
+    content.style.display = 'block';
+    indicator.textContent = '> Hide older patches';
   }
 }
 
