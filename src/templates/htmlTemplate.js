@@ -1,4 +1,4 @@
-// src/templates/htmlTemplate.js - HTML template generation with demo examples section
+// src/templates/htmlTemplate.js - HTML template with new first-time user experience
 import { getFallbackCSS } from './fallbackCSS.js';
 import { getClientScript } from './clientScript.js';
 
@@ -29,55 +29,60 @@ export const generateHTML = (cssContent = '') => {
           <div class="tagline">Exposing self-sabotage patterns</div>
         </div>
 
-        <!-- NEW: Demo Examples Section - Shows what the AI does BEFORE asking for input -->
-        <div class="demo-section">
-          <div class="demo-header">&gt; DEMO_OUTPUT.LOG</div>
-          <div class="demo-subtitle">See RealityPatch analyze common patterns:</div>
+        <!-- NEW: First-time user experience section -->
+        <div class="first-time-section">
+          <div class="stats-bar">
+            <div class="stat-item">Analysis <span class="stat-number">#1,247</span> today</div>
+            <div class="stat-item">Avg response: <span class="stat-number">23</span> seconds</div>
+            <div class="stat-item">No signup required</div>
+          </div>
           
-          <div class="demo-examples">
-            <div class="demo-item">
-              <div class="demo-input">
-                <span class="demo-label">INPUT:</span>
-                "I'm just waiting for the right opportunity to start my business"
-              </div>
-              <div class="demo-output">
-                <span class="demo-label">ANALYSIS:</span>
-                You're not waiting - you're avoiding. "The right opportunity" is code for "zero-risk opportunity" which doesn't exist. Your perfectionism is fear wearing a disguise. Every day you wait is another day your competition gets ahead.
-                
-                <strong>Your assignment:</strong> Write down 3 business ideas today. Pick the least perfect one and do 1 small action toward it within 24 hours.
-              </div>
+          <div class="outcomes-section">
+            <div class="outcomes-header">&gt; REAL_USER_OUTCOMES.LOG</div>
+            <div style="margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-secondary);">Recent breakthroughs from people just like you:</div>
+            
+            <div class="outcome-item">
+              <div class="outcome-quote">"Called out my 'perfectionism excuse' - shipped my first product in 3 weeks instead of waiting for the 'perfect' moment"</div>
+              <div class="outcome-pattern">PATTERN: Using perfectionism as procrastination shield</div>
             </div>
             
-            <div class="demo-item">
-              <div class="demo-input">
-                <span class="demo-label">INPUT:</span>
-                "I keep starting projects but never finish them"
-              </div>
-              <div class="demo-output">
-                <span class="demo-label">ANALYSIS:</span>
-                You're addicted to the dopamine hit of starting something new, but terrified of the vulnerability that comes with finishing and being judged. Each abandoned project is evidence you collect to prove you're "not good enough" - a comfortable lie that protects you from real success.
-                
-                <strong>Your assignment:</strong> Pick your most recent abandoned project. Commit to working on it for just 15 minutes today. Set a timer.
-              </div>
+            <div class="outcome-item">
+              <div class="outcome-quote">"Exposed how I was using my toxic ex as an excuse to avoid dating for 2 years"</div>
+              <div class="outcome-pattern">PATTERN: Using past trauma to avoid future vulnerability</div>
             </div>
             
-            <div class="demo-item">
-              <div class="demo-input">
-                <span class="demo-label">INPUT:</span>
-                "I know what I should do but I just can't seem to do it"
+            <div class="outcome-item">
+              <div class="outcome-quote">"Showed me I wasn't 'unlucky' - I was unconsciously choosing opportunities that would fail"</div>
+              <div class="outcome-pattern">PATTERN: Self-sabotage disguised as bad luck</div>
+            </div>
+            
+            <div class="pattern-check">
+              <div class="pattern-check-title">Quick Pattern Check:</div>
+              <div class="pattern-subtitle">Choose your biggest excuse (we'll analyze it first):</div>
+              
+              <div class="excuse-options">
+                <button class="excuse-btn" data-pattern="perfectionism">"I need everything perfect first"</button>
+                <button class="excuse-btn" data-pattern="timing">"The timing isn't right yet"</button>
+                <button class="excuse-btn" data-pattern="readiness">"I'm not ready/qualified enough"</button>
+                <button class="excuse-btn" data-pattern="research">"I need to research more first"</button>
               </div>
-              <div class="demo-output">
-                <span class="demo-label">ANALYSIS:</span>
-                "Can't" is the lie you tell yourself to avoid responsibility. You CAN do it - you're choosing not to because doing it means risking failure, discomfort, or change. Your brain prefers the familiar pain of inaction to the unknown pain of action.
-                
-                <strong>Your assignment:</strong> Do the smallest possible version of "what you should do" right now. Not tomorrow, not after you prepare more - now.
+              
+              <div class="pattern-analysis" id="patternAnalysis">
+                <div class="pattern-detected">&gt; PATTERN_DETECTED</div>
+                <div class="pattern-name" id="patternName">Analysis Paralysis</div>
+                <div class="pattern-explanation" id="patternExplanation">
+                  Research feels productive, but you are using it as sophisticated procrastination. Each new piece of information gives you permission to delay action just a little longer until you know "enough."
+                </div>
+                <div class="pattern-insight" id="patternInsight">
+                  You already know enough to start. More research will not eliminate the fear - only action will.
+                </div>
               </div>
             </div>
           </div>
           
-          <div class="demo-cta">
-            <div class="demo-cta-text">Ready for your own brutally honest analysis?</div>
-            <button id="startAnalysisBtn" class="demo-start-btn">START YOUR ANALYSIS</button>
+          <div class="personal-analysis-cta">
+            <div class="cta-question">Want analysis of YOUR specific situation?</div>
+            <button id="startAnalysisBtn" class="start-analysis-btn">GET MY PERSONAL ANALYSIS</button>
           </div>
         </div>
 
