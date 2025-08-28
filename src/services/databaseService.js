@@ -1,5 +1,4 @@
-// src/services/databaseService.js
-// IMPORTANT: Load environment variables FIRST
+// src/services/databaseService.js - FIXED credit management with proper verification
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -11,39 +10,35 @@ console.log('🔍 DatabaseService environment variables check:');
 console.log('KV_REST_API_URL:', process.env.KV_REST_API_URL ? 'SET' : 'MISSING');
 console.log('KV_REST_API_TOKEN:', process.env.KV_REST_API_TOKEN ? 'SET' : 'MISSING');
 
-// Validate required environment variables
 if (!process.env.KV_REST_API_URL || !process.env.KV_REST_API_TOKEN) {
   console.error('❌ Missing required Upstash Redis environment variables');
   throw new Error('KV_REST_API_URL and KV_REST_API_TOKEN are required');
 }
 
-// Initialize Redis client
 const redis = new Redis({
   url: process.env.KV_REST_API_URL,
   token: process.env.KV_REST_API_TOKEN,
 });
 
-// Test Redis connection
+// Test Redis connection on startup
 const testConnection = async () => {
   try {
     console.log('🧪 Testing Redis connection...');
     await redis.set('test', 'Hello Redis!');
     const result = await redis.get('test');
     console.log('✅ Redis connection successful! Test value:', result);
-    await redis.del('test'); // Clean up
+    await redis.del('test');
   } catch (error) {
     console.error('❌ Redis connection failed:', error.message);
-    throw error; // Re-throw to prevent app startup if Redis fails
+    throw error;
   }
 };
 
-// Run test on startup
 testConnection();
 
-// UTC date utilities
 const getUTCDateString = () => {
   const now = new Date();
-  return now.toISOString().split('T')[0]; // Returns YYYY-MM-DD in UTC
+  return now.toISOString().split('T')[0];
 };
 
 const getUTCTimestamp = () => {
@@ -74,7 +69,6 @@ export class DatabaseService {
   static async saveUserData(userId, userData) {
     try {
       await redis.set(`user:${userId}`, userData);
-      // Set expiration using config value
       const retentionSeconds = DATABASE_CONFIG.dataRetentionDays * 24 * 60 * 60;
       await redis.expire(`user:${userId}`, retentionSeconds);
       return true;
@@ -84,28 +78,25 @@ export class DatabaseService {
     }
   }
 
-  // FIXED: Add interaction to user history with consistent ID handling
+  // Add interaction to user history
   static async addInteraction(userId, interaction) {
     const userData = await this.getUserData(userId);
     
-    // Use provided ID or generate timestamp-based ID
     const interactionId = interaction.id || Date.now();
     
     const newInteraction = {
       ...interaction,
       timestamp: getUTCTimestamp(),
-      id: interactionId, // Use consistent ID
-      completed: false // Add completion tracking
+      id: interactionId,
+      completed: false
     };
     
     userData.history.push(newInteraction);
 
-    // Keep only last N interactions using config value
     if (userData.history.length > DATABASE_CONFIG.maxHistoryPerUser) {
       userData.history = userData.history.slice(-DATABASE_CONFIG.maxHistoryPerUser);
     }
 
-    // Update usage count (daily reset using UTC)
     const todayUTC = getUTCDateString();
     if (userData.usage.lastReset !== todayUTC) {
       userData.usage.count = 0;
@@ -117,7 +108,7 @@ export class DatabaseService {
     return userData;
   }
 
-  // FIXED: Enhanced mark assignment as completed with better ID matching
+  // Mark assignment as completed
   static async markAssignmentCompleted(userId, assignmentId) {
     try {
       console.log('🎯 Attempting to mark assignment completed:', {
@@ -128,10 +119,9 @@ export class DatabaseService {
       const userData = await this.getUserData(userId);
       console.log('📚 User history count:', userData.history.length);
       
-      // Try multiple matching strategies
       let assignment = null;
       
-      // Strategy 1: Direct ID match (number to number comparison)
+      // Strategy 1: Direct ID match
       assignment = userData.history.find(item => {
         const match = item.id === assignmentId || item.id === String(assignmentId) || String(item.id) === String(assignmentId);
         if (match) {
@@ -153,7 +143,7 @@ export class DatabaseService {
         });
       }
       
-      // Strategy 3: Find most recent uncompleted assignment with an assignment
+      // Strategy 3: Find most recent uncompleted assignment
       if (!assignment) {
         const uncompletedAssignments = userData.history
           .filter(item => 
@@ -162,7 +152,7 @@ export class DatabaseService {
             !item.isFollowUp &&
             !item.completed
           )
-          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()); // Most recent first
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         if (uncompletedAssignments.length > 0) {
           assignment = uncompletedAssignments[0];
@@ -187,12 +177,6 @@ export class DatabaseService {
         return true;
       } else {
         console.log('❌ Could not find assignment to complete with ID:', assignmentId);
-        console.log('📋 Available assignments:');
-        userData.history
-          .filter(item => item.response && item.response.toLowerCase().includes('your assignment:'))
-          .forEach((item, idx) => {
-            console.log(`   ${idx + 1}. ID: ${item.id}, Timestamp: ${new Date(item.timestamp).getTime()}, Input: "${item.input?.substring(0, 30)}...", Completed: ${item.completed}`);
-          });
         return false;
       }
     } catch (error) {
@@ -206,7 +190,6 @@ export class DatabaseService {
     const userData = await this.getUserData(userId);
     const todayUTC = getUTCDateString();
     
-    // Reset count if new day (UTC)
     if (userData.usage.lastReset !== todayUTC) {
       return { allowed: true, count: 0, limit: dailyLimit };
     }
@@ -226,11 +209,9 @@ export class DatabaseService {
       const keys = await redis.keys('user:*');
       const totalUsers = keys.length;
       
-      // Get usage for today (UTC)
       const todayUTC = getUTCDateString();
       let dailyUsage = 0;
       
-      // Sample users to estimate daily usage
       const sampleSize = Math.min(10, keys.length);
       for (let i = 0; i < sampleSize; i++) {
         const userData = await redis.get(keys[i]);
@@ -252,56 +233,182 @@ export class DatabaseService {
     }
   }
 
-  // Credit management functions
+  // FIXED: Enhanced addExtraCredits with proper error handling and verification
   static async addExtraCredits(userId, amount, expiryHours = 24) {
-    const userData = await this.getUserData(userId);
-    
-    const currentCredits = userData.extraCredits || 0;
-    const newTotal = currentCredits + amount;
-    
-    const expiry = new Date();
-    expiry.setHours(expiry.getHours() + expiryHours);
-    
-    userData.extraCredits = newTotal;
-    userData.creditsExpiry = expiry.toISOString();
-    
-    await this.saveUserData(userId, userData);
-    
-    return { added: amount, total: newTotal, expiry: userData.creditsExpiry };
+    try {
+      console.log('💳 Adding extra credits:', { userId: userId.substring(0, 20) + '...', amount, expiryHours });
+      
+      // Validate inputs
+      if (!userId || typeof userId !== 'string') {
+        throw new Error('Valid userId is required');
+      }
+      
+      if (!amount || amount <= 0 || !Number.isInteger(amount)) {
+        throw new Error('Amount must be a positive integer');
+      }
+      
+      if (!expiryHours || expiryHours <= 0) {
+        throw new Error('ExpiryHours must be a positive number');
+      }
+
+      // Get current user data with retry logic
+      let userData;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        try {
+          userData = await this.getUserData(userId);
+          break;
+        } catch (error) {
+          attempts++;
+          if (attempts === maxAttempts) {
+            throw new Error(`Failed to get user data after ${maxAttempts} attempts: ${error.message}`);
+          }
+          console.warn(`Attempt ${attempts} to get user data failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      const currentCredits = userData.extraCredits || 0;
+      const newTotal = currentCredits + amount;
+      
+      // Calculate expiry time
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + expiryHours);
+      const expiryISO = expiry.toISOString();
+      
+      console.log('💳 Credit calculation:', {
+        currentCredits,
+        amountToAdd: amount,
+        newTotal,
+        expiryISO
+      });
+      
+      // Update user data
+      userData.extraCredits = newTotal;
+      userData.creditsExpiry = expiryISO;
+      userData.lastCreditUpdate = getUTCTimestamp();
+      
+      // Save with retry logic and verification
+      let saveSuccess = false;
+      attempts = 0;
+      
+      while (attempts < maxAttempts) {
+        try {
+          saveSuccess = await this.saveUserData(userId, userData);
+          if (saveSuccess) {
+            break;
+          } else {
+            throw new Error('SaveUserData returned false');
+          }
+        } catch (error) {
+          attempts++;
+          console.error(`Save attempt ${attempts} failed:`, error.message);
+          if (attempts === maxAttempts) {
+            throw new Error(`Failed to save user data after ${maxAttempts} attempts: ${error.message}`);
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      
+      if (!saveSuccess) {
+        throw new Error('Failed to save credits to database');
+      }
+      
+      // CRITICAL: Verify the credits were actually saved by reading them back
+      console.log('🔍 Verifying credits were saved...');
+      const verificationData = await this.getUserData(userId);
+      
+      if (!verificationData.extraCredits || verificationData.extraCredits < newTotal) {
+        throw new Error(`Credit verification failed - expected ${newTotal}, got ${verificationData.extraCredits || 0}`);
+      }
+      
+      console.log('✅ Credits successfully added and verified:', {
+        added: amount,
+        total: newTotal,
+        expiry: expiryISO,
+        verified: verificationData.extraCredits
+      });
+      
+      return { 
+        success: true,  // CRITICAL: This was missing!
+        added: amount, 
+        total: newTotal, 
+        expiry: expiryISO,
+        verified: true
+      };
+      
+    } catch (error) {
+      console.error('❌ Add extra credits failed:', error);
+      return {
+        success: false,
+        error: error.message,
+        added: 0,
+        total: 0,
+        expiry: null,
+        verified: false
+      };
+    }
   }
 
+  // FIXED: Enhanced useExtraCredit with better error handling
   static async useExtraCredit(userId) {
-    const userData = await this.getUserData(userId);
-    
-    if (!userData.extraCredits || userData.extraCredits <= 0) {
-      return { success: false, reason: 'No credits available' };
+    try {
+      const userData = await this.getUserData(userId);
+      
+      if (!userData.extraCredits || userData.extraCredits <= 0) {
+        return { success: false, reason: 'No credits available' };
+      }
+      
+      if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
+        userData.extraCredits = 0;
+        userData.creditsExpiry = null;
+        await this.saveUserData(userId, userData);
+        return { success: false, reason: 'Credits expired' };
+      }
+      
+      userData.extraCredits -= 1;
+      const saveSuccess = await this.saveUserData(userId, userData);
+      
+      if (!saveSuccess) {
+        throw new Error('Failed to save after using credit');
+      }
+      
+      return { success: true, remaining: userData.extraCredits };
+    } catch (error) {
+      console.error('Use extra credit failed:', error);
+      return { success: false, reason: error.message };
     }
-    
-    if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
-      userData.extraCredits = 0;
-      userData.creditsExpiry = null;
-      await this.saveUserData(userId, userData);
-      return { success: false, reason: 'Credits expired' };
-    }
-    
-    userData.extraCredits -= 1;
-    await this.saveUserData(userId, userData);
-    
-    return { success: true, remaining: userData.extraCredits };
   }
 
+  // FIXED: Enhanced getUserCredits with expiry cleanup
   static async getUserCredits(userId) {
-    const userData = await this.getUserData(userId);
-    
-    if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
-      userData.extraCredits = 0;
-      userData.creditsExpiry = null;
-      await this.saveUserData(userId, userData);
+    try {
+      const userData = await this.getUserData(userId);
+      
+      // Clean up expired credits
+      if (userData.creditsExpiry && new Date() > new Date(userData.creditsExpiry)) {
+        const hadCredits = userData.extraCredits > 0;
+        userData.extraCredits = 0;
+        userData.creditsExpiry = null;
+        
+        if (hadCredits) {
+          await this.saveUserData(userId, userData);
+          console.log('🧹 Cleaned up expired credits for user');
+        }
+      }
+      
+      return {
+        amount: userData.extraCredits || 0,
+        expiry: userData.creditsExpiry
+      };
+    } catch (error) {
+      console.error('Get user credits failed:', error);
+      return {
+        amount: 0,
+        expiry: null
+      };
     }
-    
-    return {
-      amount: userData.extraCredits || 0,
-      expiry: userData.creditsExpiry
-    };
   }
 }
