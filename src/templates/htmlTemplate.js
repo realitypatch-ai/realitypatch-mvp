@@ -48,7 +48,7 @@ export const generateHTML = (cssContent = '') => {
     <meta name="twitter:image" content="https://realitypatch.co/twitter-card.png">
     <meta name="twitter:creator" content="@realitypatchai">
     
-    <!-- STRUCTURED DATA - CRITICAL FOR RICH SNIPPETS -->
+    <!-- ACCURATE STRUCTURED DATA -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -56,9 +56,10 @@ export const generateHTML = (cssContent = '') => {
       "name": "RealityPatch",
       "alternateName": "Reality Patch Psychological Debugger",
       "url": "https://realitypatch.co",
-      "description": "AI-powered psychological debugging tool that analyzes your self-deception patterns and provides surgical psychological insights",
-      "applicationCategory": "HealthApplication",
+      "description": "AI-powered psychological analysis tool that helps identify self-deception patterns and provides direct psychological insights",
+      "applicationCategory": "UtilityApplication",
       "operatingSystem": "Web Browser",
+      "browserRequirements": "Requires JavaScript enabled",
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -70,19 +71,20 @@ export const generateHTML = (cssContent = '') => {
         "name": "Falah Faizal",
         "email": "realitypatchai@gmail.com"
       },
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.8",
-        "reviewCount": "127"
-      },
       "featureList": [
-        "Psychological pattern analysis",
-        "Self-deception detection",
-        "Brutally honest feedback",
-        "Instant psychological insights",
-        "No signup required",
-        "Anonymous analysis"
-      ]
+        "Text-based psychological pattern analysis",
+        "Self-reflection tool",
+        "Anonymous analysis",
+        "No account registration required",
+        "Instant feedback"
+      ],
+      "audience": {
+        "@type": "Audience",
+        "audienceType": "People seeking self-improvement and psychological insights"
+      },
+      "datePublished": "2024",
+      "inLanguage": "en",
+      "isAccessibleForFree": true
     }
     </script>
     
