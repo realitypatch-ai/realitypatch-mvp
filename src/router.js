@@ -17,6 +17,24 @@ export const router = async (req, res) => {
   }
 
   try {
+    // Debug endpoint to check deployed files
+    if (req.method === 'GET' && req.url === '/debug-files') {
+      const fs = await import('fs');
+      try {
+        const files = fs.readdirSync(process.cwd());
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          cwd: process.cwd(),
+          files: files 
+        }, null, 2));
+        return;
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Error: ' + error.message);
+        return;
+      }
+    }
+
     // Route requests
     if (req.method === 'GET' && req.url?.startsWith('/api/history')) {
       await handleHistoryRequest(req, res);
