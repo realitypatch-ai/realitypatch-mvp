@@ -1,4 +1,4 @@
-// Enhanced htmlTemplate.js with comprehensive SEO optimization
+// Enhanced htmlTemplate.js with natural SEO optimization
 import { getFallbackCSS } from './fallbackCSS.js';
 import { getClientScript } from './clientScript.js';
 
@@ -10,12 +10,9 @@ export const generateHTML = (cssContent = '') => {
   <head>
     <meta charset="UTF-8">
     
-    <!-- CORE SEO META TAGS -->
-    <title>RealityPatch - Stop Self-Deception, Get Brutally Honest Psychological Insights</title>
-    <meta name="description" content="AI psychological debugger that exposes your self-deception patterns. Get surgical insights, not generic advice. Analyze your exact word choices to identify what's really holding you back.">
-    
-    <!-- TARGETED KEYWORDS META -->
-    <meta name="keywords" content="psychological patterns, self deception, cognitive bias, stuck in life, procrastination patterns, self sabotage, psychological insights, brutally honest feedback, reality check, mental blocks, limiting beliefs, psychological debugging">
+    <!-- NATURAL SEO META TAGS -->
+    <title>RealityPatch - Get Honest About What's Holding You Back</title>
+    <meta name="description" content="Stop making excuses. Get direct insights into why you're stuck and what patterns are keeping you there. AI analysis of your exact situation.">
     
     <!-- VIEWPORT & MOBILE -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -24,18 +21,18 @@ export const generateHTML = (cssContent = '') => {
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <!-- FAVICON COLLECTION - CRITICAL FOR SEO -->
+    <!-- FAVICON COLLECTION -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.ico">
     
-    <!-- OPEN GRAPH / SOCIAL MEDIA -->
+    <!-- SOCIAL MEDIA SHARING -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://realitypatch.co">
-    <meta property="og:title" content="RealityPatch - Psychological Debugger">
-    <meta property="og:description" content="Stop lying to yourself. Get AI-powered psychological insights that expose your self-deception patterns and give you surgical advice.">
+    <meta property="og:title" content="RealityPatch - Stop Making Excuses">
+    <meta property="og:description" content="Get brutally honest insights about why you're stuck. AI analysis that cuts through your excuses and shows you what's really happening.">
     <meta property="og:image" content="https://realitypatch.co/og-image.png">
     <meta property="og:image:alt" content="RealityPatch - AI Psychological Debugger Interface">
     <meta property="og:site_name" content="RealityPatch">
@@ -43,48 +40,31 @@ export const generateHTML = (cssContent = '') => {
     <!-- TWITTER CARDS -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://realitypatch.co">
-    <meta name="twitter:title" content="RealityPatch - Stop Self-Deception">
-    <meta name="twitter:description" content="AI psychological debugger that gives you brutally honest insights instead of generic self-help.">
+    <meta name="twitter:title" content="RealityPatch - Stop Making Excuses">
+    <meta name="twitter:description" content="Get brutally honest insights about why you're stuck. Cut through the excuses.">
     <meta name="twitter:image" content="https://realitypatch.co/twitter-card.png">
     <meta name="twitter:creator" content="@realitypatchai">
     
-    <!-- ACCURATE STRUCTURED DATA -->
+    <!-- NATURAL STRUCTURED DATA -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "RealityPatch",
-      "alternateName": "Reality Patch Psychological Debugger",
       "url": "https://realitypatch.co",
-      "description": "AI-powered psychological analysis tool that helps identify self-deception patterns and provides direct psychological insights",
+      "description": "Get direct insights into what's keeping you stuck",
       "applicationCategory": "UtilityApplication",
       "operatingSystem": "Web Browser",
-      "browserRequirements": "Requires JavaScript enabled",
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "AUD",
-        "availability": "https://schema.org/InStock"
+        "priceCurrency": "AUD"
       },
       "creator": {
         "@type": "Person",
         "name": "Falah Faizal",
         "email": "realitypatchai@gmail.com"
-      },
-      "featureList": [
-        "Text-based psychological pattern analysis",
-        "Self-reflection tool",
-        "Anonymous analysis",
-        "No account registration required",
-        "Instant feedback"
-      ],
-      "audience": {
-        "@type": "Audience",
-        "audienceType": "People seeking self-improvement and psychological insights"
-      },
-      "datePublished": "2024",
-      "inLanguage": "en",
-      "isAccessibleForFree": true
+      }
     }
     </script>
     
@@ -113,14 +93,9 @@ export const generateHTML = (cssContent = '') => {
       gtag('config', 'G-XXXXXXXXXX');
     </script>
     
-    <!-- ADDITIONAL SEO SIGNALS -->
-    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <meta name="googlebot" content="index, follow">
+    <!-- BASIC SEO SIGNALS -->
+    <meta name="robots" content="index, follow">
     <meta name="author" content="Falah Faizal">
-    <meta name="generator" content="RealityPatch v1.0">
-    
-    <!-- PRELOAD CRITICAL RESOURCES -->
-    <!-- Font preloading removed - using Google Fonts CDN instead -->
     
     <style>
       ${finalCSS}
