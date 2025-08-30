@@ -1,11 +1,10 @@
-// OPTIMIZED VERSION: Much faster initial loading and fixed stats bar
+// SIMPLIFIED CLIENT SCRIPT with clean payment handling
 export const getClientScript = () => `
-// OPTIMIZATION: Immediate UI state check - no waiting for server
+// Immediate UI state check
 function determineInitialUIState() {
   const hasCompletedFirstTime = ClientDataService.hasCompletedFirstTime();
   const hasLegacyData = ClientDataService.hasLegacyData();
   
-  // Show main interface immediately if user has completed first-time OR has legacy data
   if (hasCompletedFirstTime || hasLegacyData) {
     console.log('⚡ Fast-showing main interface for returning user');
     showMainInterface();
@@ -16,7 +15,7 @@ function determineInitialUIState() {
   }
 }
 
-// FIXED: Centralized function to show main interface
+// Centralized function to show main interface
 function showMainInterface() {
   const firstTimeSection = document.querySelector('.first-time-section');
   
@@ -30,37 +29,31 @@ function showMainInterface() {
     setTimeout(() => {
       mainInputSection.classList.add('show');
       if (textarea) textarea.focus();
-      
-    }, 50); // Much faster than 100ms
+    }, 50);
   }
   
-  // Mark first-time experience as complete
   ClientDataService.markFirstTimeComplete();
 }
 
-// NEW: Demo functionality for the "RUN PATTERN ANALYSIS" button
+// Demo functionality for first-time users
 function setupDemoAnalysis() {
   const demoAnalyzeBtn = document.getElementById('demoAnalyzeBtn');
   const demoOutput = document.getElementById('demoOutput');
   
   if (demoAnalyzeBtn && demoOutput) {
     demoAnalyzeBtn.addEventListener('click', () => {
-      // Disable button during animation
       demoAnalyzeBtn.disabled = true;
       demoAnalyzeBtn.textContent = '> ANALYZING...';
       
-      // Add loading animation to demo text
       const demoText = document.getElementById('demoText');
       if (demoText) {
         demoText.style.borderLeft = '3px solid var(--accent-red)';
         demoText.style.animation = 'pulse 1s ease-in-out infinite';
       }
       
-      // Show results after a realistic delay
       setTimeout(() => {
         demoOutput.classList.add('show');
         
-        // Reset button and demo text
         demoAnalyzeBtn.disabled = false;
         demoAnalyzeBtn.textContent = '> RUN PATTERN ANALYSIS';
         
@@ -69,16 +62,15 @@ function setupDemoAnalysis() {
           demoText.style.animation = 'none';
         }
         
-        // Track the demo interaction
         if (window.va) {
           window.va('track', 'DemoAnalysisRun');
         }
-      }, 2000); // 2 second delay for realistic AI processing feel
+      }, 2000);
     });
   }
 }
 
-// AUTO-REFRESH SYSTEM: Detects when server data has changed and updates UI
+// SIMPLIFIED: Background sync without payment interference
 class DataSyncManager {
   constructor() {
     this.lastKnownHistoryCount = 0;
@@ -87,24 +79,21 @@ class DataSyncManager {
     this.isPolling = false;
   }
 
-  // Start background polling to detect server changes
   startBackgroundSync() {
     if (this.isPolling) return;
     
     this.isPolling = true;
     console.log('📡 Starting background data sync...');
     
-    // Poll every 5 seconds to detect changes
     this.pollInterval = setInterval(async () => {
       try {
         await this.checkForChanges();
       } catch (error) {
         console.warn('Background sync check failed:', error.message);
       }
-    }, 5000);
+    }, 10000); // Reduced to 10 seconds, less aggressive
   }
 
-  // Check if server data has changed
   async checkForChanges() {
     try {
       const freshData = await ServerDataService.getUserData(this.sessionId);
@@ -112,7 +101,6 @@ class DataSyncManager {
       const currentHistoryCount = freshData.history?.length || 0;
       const currentUsageCount = freshData.usage?.count || 0;
       
-      // Detect if history or usage has changed
       const historyChanged = currentHistoryCount !== this.lastKnownHistoryCount;
       const usageChanged = currentUsageCount !== this.lastKnownUsageCount;
       
@@ -122,25 +110,17 @@ class DataSyncManager {
           usageCount: this.lastKnownUsageCount + ' → ' + currentUsageCount
         });
         
-        // Update global state and UI
         window.userData = freshData;
         updateUIWithUserData(freshData);
         
-        // Update tracking variables
         this.lastKnownHistoryCount = currentHistoryCount;
         this.lastKnownUsageCount = currentUsageCount;
-        
-        // Show notification for significant changes
-        if (historyChanged && currentHistoryCount > this.lastKnownHistoryCount) {
-          this.showSyncNotification('History updated: ' + currentHistoryCount + ' patches');
-        }
       }
     } catch (error) {
       console.warn('Change detection failed:', error.message);
     }
   }
 
-  // Initialize tracking with current state
   async initialize() {
     try {
       const userData = await ServerDataService.getUserData(this.sessionId);
@@ -156,37 +136,6 @@ class DataSyncManager {
     }
   }
 
-  // Show subtle notification when data syncs
-  showSyncNotification(message) {
-    const notification = document.createElement('div');
-    notification.style.cssText = 
-      'position: fixed;' +
-      'bottom: 20px;' +
-      'right: 20px;' +
-      'background: var(--accent-green);' +
-      'color: white;' +
-      'padding: 8px 12px;' +
-      'border-radius: 4px;' +
-      'font-family: "JetBrains Mono", monospace;' +
-      'font-size: 11px;' +
-      'z-index: 1000;' +
-      'opacity: 0;' +
-      'transition: opacity 0.3s ease;';
-    notification.textContent = '> ' + message;
-    
-    document.body.appendChild(notification);
-    
-    // Fade in
-    setTimeout(() => notification.style.opacity = '1', 100);
-    
-    // Fade out and remove
-    setTimeout(() => {
-      notification.style.opacity = '0';
-      setTimeout(() => notification.remove(), 300);
-    }, 2000);
-  }
-
-  // Stop polling
   stop() {
     if (this.pollInterval) {
       clearInterval(this.pollInterval);
@@ -196,24 +145,209 @@ class DataSyncManager {
   }
 }
 
-// Initialize the sync manager when DOM is ready
 let dataSyncManager;
 
-// OPTIMIZATION: Immediate UI setup on DOM ready (before full data loading)
+// NEW: Handle payment return flow
+async function handlePaymentReturn() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paymentStatus = urlParams.get('payment');
+  const creditsAdded = urlParams.get('credits');
+  
+  if (paymentStatus === 'success' && creditsAdded) {
+    console.log('💳 Processing payment return - credits:', creditsAdded);
+    
+    // Clean URL immediately
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+    
+    // Show immediate feedback
+    showPaymentProcessingNotification();
+    
+    // Force immediate server data refresh
+    setTimeout(() => {
+      refreshCreditsFromServer(parseInt(creditsAdded));
+    }, 800); // Small delay for better UX
+  }
+}
+
+// Show processing notification
+function showPaymentProcessingNotification() {
+  const notification = document.createElement('div');
+  notification.id = 'payment-processing';
+  notification.style.cssText = \`
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(52, 152, 219, 0.4);
+    animation: slideInRight 0.4s ease;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  \`;
+  
+  notification.innerHTML = \`
+    <div style="font-weight: bold; margin-bottom: 4px;">💳 Payment Success</div>
+    <div>Adding credits to account...</div>
+  \`;
+  
+  document.body.appendChild(notification);
+}
+
+// Force refresh from server after payment
+async function refreshCreditsFromServer(expectedCredits) {
+  try {
+    console.log('🔄 Refreshing data after payment...');
+    
+    const sessionId = ClientDataService.getOrCreateSessionId();
+    
+    // Clear any existing cached data to force fresh fetch
+    ClientDataService.clearCache();
+    
+    const freshData = await ServerDataService.getUserData(sessionId);
+    
+    // Update global state
+    window.userData = freshData;
+    
+    // Update UI completely
+    updateUIWithUserData(freshData);
+    
+    // Remove processing notification
+    const processingNotification = document.getElementById('payment-processing');
+    if (processingNotification) {
+      processingNotification.remove();
+    }
+    
+    // Show success notification
+    if (freshData.credits.extra >= expectedCredits) {
+      showCreditsAddedNotification(expectedCredits, freshData.credits.extra);
+    } else {
+      // Fallback if server sync is slow
+      showCreditsAddedNotification(expectedCredits, expectedCredits);
+    }
+    
+    console.log('✅ Post-payment refresh complete');
+    
+  } catch (error) {
+    console.error('Post-payment refresh failed:', error);
+    
+    // Remove processing notification
+    const processingNotification = document.getElementById('payment-processing');
+    if (processingNotification) {
+      processingNotification.remove();
+    }
+    
+    // Show error notification
+    showSimpleNotification('Payment processed - credits may take a moment to appear', 'warning');
+  }
+}
+
+// Clean success notification
+function showCreditsAddedNotification(added, total) {
+  const notification = document.createElement('div');
+  notification.style.cssText = \`
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: white;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4);
+    animation: slideInRight 0.4s ease;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  \`;
+  
+  notification.innerHTML = \`
+    <div style="font-weight: bold; margin-bottom: 4px;">✓ Credits Added</div>
+    <div>+\${added} patches ready to use</div>
+  \`;
+  
+  // Click to dismiss
+  notification.onclick = () => {
+    notification.style.animation = 'slideOutRight 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  };
+  
+  document.body.appendChild(notification);
+  
+  // Auto dismiss after 5 seconds
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideOutRight 0.3s ease';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, 5000);
+}
+
+// Generic notification function
+function showSimpleNotification(message, type = 'info', duration = 5000) {
+  const colors = {
+    success: '#2ecc71',
+    warning: '#f39c12', 
+    error: '#e74c3c',
+    info: '#3498db'
+  };
+
+  const notification = document.createElement('div');
+  notification.style.cssText = \`
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: \${colors[type]};
+    color: white;
+    padding: 12px 16px;
+    border-radius: 6px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 300px;
+    cursor: pointer;
+    animation: slideInRight 0.4s ease;
+  \`;
+  
+  notification.textContent = message;
+  notification.onclick = () => {
+    notification.style.animation = 'slideOutRight 0.3s ease';
+    setTimeout(() => notification.remove(), 300);
+  };
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideOutRight 0.3s ease';
+      setTimeout(() => notification.remove(), 300);
+    }
+  }, duration);
+}
+
+// DOM Ready handler with payment check
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('🚀 DOM ready - determining UI state immediately');
+  console.log('🚀 DOM ready - checking for payment return');
+  
+  // FIRST: Check if returning from payment
+  handlePaymentReturn();
   
   const initialState = determineInitialUIState();
   
-  // Continue with pattern check setup for first-time users
   if (initialState === 'first-time') {
     setupPatternCheckButtons();
-    setupDemoAnalysis(); // NEW: Setup demo functionality
+    setupDemoAnalysis();
   }
   
   setupEventListeners();
   
-  // OPTIMIZATION: Load data in background without blocking UI
+  // Load data in background
   setTimeout(() => {
     initializeUserDataBackground();
   }, 100);
@@ -272,7 +406,6 @@ function setupPatternCheckButtons() {
 }
 
 function setupEventListeners() {
-  // First-time to main interface transition
   if (startAnalysisBtn) {
     startAnalysisBtn.addEventListener('click', () => {
       showMainInterface();
@@ -283,7 +416,6 @@ function setupEventListeners() {
     });
   }
 
-  // Example buttons
   document.querySelectorAll('.example-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       if (textarea) {
@@ -300,7 +432,6 @@ function setupEventListeners() {
     });
   });
 
-  // Textarea auto-resize
   if (textarea) {
     textarea.addEventListener('input', () => {
       textarea.style.height = 'auto';
@@ -309,73 +440,14 @@ function setupEventListeners() {
     });
   }
 
-  // Main patch button
   if (button) {
     button.addEventListener('click', handlePatchSubmission);
   }
 }
 
-// Console-compatible version without template literals
-async function exhaustDailyLimit() {
-  console.log('Making 10 requests to exhaust daily limit...');
-  
-  for (let i = 1; i <= 10; i++) {
-    try {
-      const response = await fetch('/api/patch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Session-ID': ClientDataService.getOrCreateSessionId()
-        },
-        body: JSON.stringify({ 
-          userInput: 'Test request ' + i 
-        })
-      });
-      
-      const data = await response.json();
-      console.log('Request ' + i + ':', data.limitReached ? 'LIMIT REACHED' : 'Success');
-      
-      // Update UI with fresh data
-      if (data.userData) {
-        window.userData = data.userData;
-        updateUIWithUserData(data.userData);
-      }
-      
-      if (data.limitReached) {
-        console.log('Daily limit exhausted!');
-        break;
-      }
-    } catch (error) {
-      console.log('Request ' + i + ' failed:', error.message);
-    }
-  }
-  
-  console.log('Requests complete - checking final state...');
-  await refreshUserData();
-}
-
-// Simple refresh function
-async function refreshUserData() {
-  const sessionId = ClientDataService.getOrCreateSessionId();
-  const freshData = await ServerDataService.getUserData(sessionId);
-  
-  window.userData = freshData;
-  updateUIWithUserData(freshData);
-  
-  console.log('UI refreshed');
-  console.log('Usage: ' + freshData.usage.count + '/' + freshData.usage.limit);
-  console.log('History count: ' + (freshData.history ? freshData.history.length : 0));
-  console.log('Credits: ' + freshData.credits.extra);
-}
-
-// Make functions globally available
-window.exhaustDailyLimit = exhaustDailyLimit;
-window.refreshUserData = refreshUserData;
-
-// OPTIMIZATION: Background data loading that doesn't block UI
+// Background data loading
 async function initializeUserDataBackground() {
   try {
-    // Handle legacy migration if needed (background)
     if (ClientDataService.hasLegacyData()) {
       const attempts = ClientDataService.getMigrationAttempts();
       
@@ -383,27 +455,21 @@ async function initializeUserDataBackground() {
         console.warn('Maximum migration attempts reached, proceeding without migration');
         showMigrationSkippedNotice();
       } else {
-        // Don't await - let it happen in background
         migrateLegacyData().catch(error => {
           console.error('Background migration failed:', error);
         });
       }
     }
     
-    // Load user data from server (background)
     userData = await ServerDataService.getUserData(sessionId);
-    
-    // Update UI with loaded data
     updateUIWithUserData(userData);
     
   } catch (error) {
     console.error('Background data loading failed:', error);
-    // UI is already shown, so this doesn't block the user
   }
 }
 
-// REST OF THE CLIENT SCRIPT CODE (keeping existing functions)
-// ClientDataService implementation...
+// ClientDataService implementation
 class ClientDataService {
   static SESSION_KEY = 'rp-session-id';
   static PREFERENCES_KEY = 'rp-preferences';
@@ -531,6 +597,19 @@ class ClientDataService {
       return null;
     } catch (error) {
       return null;
+    }
+  }
+
+  static clearCache() {
+    try {
+      const keys = Object.keys(localStorage);
+      keys.forEach(key => {
+        if (key.startsWith('cache_')) {
+          this.safeRemove(key);
+        }
+      });
+    } catch (error) {
+      console.warn('Cache clear failed');
     }
   }
 }
@@ -742,7 +821,6 @@ function showHistorySection(history) {
   const historyContent = document.getElementById('history-content');
   if (!historyContent) return;
   
-  // Helper function to render history items
   function renderHistoryItem(item, index) {
     const followUpBadge = item.isFollowUp ? '<span class="follow-up-badge">FOLLOW-UP</span>' : '';
     
@@ -762,14 +840,11 @@ function showHistorySection(history) {
       '</div>';
   }
   
-  // Split history into recent (last 3) and older
   const recentHistory = history.slice(-3).reverse();
   const olderHistory = history.slice(0, -3).reverse();
   
-  // Render recent history
   let historyHTML = recentHistory.map(renderHistoryItem).join('');
   
-  // Add expandable older section if exists
   if (olderHistory.length > 0) {
     historyHTML += 
       '<div class="older-history-section">' +
@@ -789,7 +864,6 @@ function showHistorySection(history) {
   }
 }
 
-// Updated toggle function
 window.toggleOlderHistory = function() {
   const content = document.getElementById('older-history-content');
   const indicator = document.getElementById('older-history-indicator');
@@ -906,12 +980,9 @@ async function handlePatchSubmission() {
         resultContent.innerHTML += statusHtml;
       }, 1000);
       
-      // CLEAN FIX: Update userData and immediately refresh entire UI
       if (response.userData) {
         userData = response.userData;
         ClientDataService.cacheData('userData', userData, 15);
-        
-        // Immediately update the entire UI with fresh server data
         updateUIWithUserData(userData);
       }
       
@@ -966,39 +1037,16 @@ function showMigrationSuccessNotice(migrated) {
       (migrated.extraCredits > 0 ? migrated.extraCredits + ' credits' : '') +
       (migrated.historyItems > 0 ? (migrated.extraCredits > 0 ? ', ' : '') + migrated.historyItems + ' history items' : '');
     
-    showNotice(message, 'success', 5000);
+    showSimpleNotification(message, 'success', 5000);
   }
 }
 
 function showMigrationErrorNotice(message) {
-  showNotice('Sync issue: ' + message, 'warning', 8000);
+  showSimpleNotification('Sync issue: ' + message, 'warning', 8000);
 }
 
 function showMigrationSkippedNotice() {
-  showNotice('Using local data - sync will be attempted later', 'info', 6000);
-}
-
-function showNotice(message, type, duration) {
-  type = type || 'info';
-  duration = duration || 5000;
-  
-  const colors = {
-    success: '#2ecc71',
-    warning: '#f39c12', 
-    error: '#e74c3c',
-    info: '#3498db'
-  };
-
-  const notice = document.createElement('div');
-  notice.style.cssText = 'position: fixed; top: 20px; right: 20px; background: ' + colors[type] + '; color: white; padding: 12px 16px; border-radius: 6px; font-family: "JetBrains Mono", monospace; font-size: 13px; z-index: 1000; box-shadow: 0 4px 20px rgba(0,0,0,0.15); max-width: 300px; cursor: pointer;';
-  notice.textContent = message;
-  notice.onclick = () => notice.remove();
-  
-  document.body.appendChild(notice);
-  
-  setTimeout(() => {
-    if (notice.parentNode) notice.remove();
-  }, duration);
+  showSimpleNotification('Using local data - sync will be attempted later', 'info', 6000);
 }
 
 window.toggleHistory = function() {
@@ -1019,6 +1067,73 @@ window.toggleHistory = function() {
     ClientDataService.safeSet('rp-history-visible', 'true');
   }
 }
+
+// Debug functions for console
+async function exhaustDailyLimit() {
+  console.log('Making 10 requests to exhaust daily limit...');
+  
+  for (let i = 1; i <= 10; i++) {
+    try {
+      const response = await fetch('/api/patch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-ID': ClientDataService.getOrCreateSessionId()
+        },
+        body: JSON.stringify({ 
+          userInput: 'Test request ' + i 
+        })
+      });
+      
+      const data = await response.json();
+      console.log('Request ' + i + ':', data.limitReached ? 'LIMIT REACHED' : 'Success');
+      
+      if (data.userData) {
+        window.userData = data.userData;
+        updateUIWithUserData(data.userData);
+      }
+      
+      if (data.limitReached) {
+        console.log('Daily limit exhausted!');
+        break;
+      }
+    } catch (error) {
+      console.log('Request ' + i + ' failed:', error.message);
+    }
+  }
+  
+  console.log('Requests complete - checking final state...');
+  await refreshUserData();
+}
+
+async function refreshUserData() {
+  const sessionId = ClientDataService.getOrCreateSessionId();
+  const freshData = await ServerDataService.getUserData(sessionId);
+  
+  window.userData = freshData;
+  updateUIWithUserData(freshData);
+  
+  console.log('UI refreshed');
+  console.log('Usage: ' + freshData.usage.count + '/' + freshData.usage.limit);
+  console.log('History count: ' + (freshData.history ? freshData.history.length : 0));
+  console.log('Credits: ' + freshData.credits.extra);
+}
+
+window.exhaustDailyLimit = exhaustDailyLimit;
+window.refreshUserData = refreshUserData;
+
+// Add CSS animations for notifications
+const style = document.createElement('style');
+style.textContent = 
+  '@keyframes slideInRight {' +
+    'from { transform: translateX(100%); opacity: 0; }' +
+    'to { transform: translateX(0); opacity: 1; }' +
+  '}' +
+  '@keyframes slideOutRight {' +
+    'from { transform: translateX(0); opacity: 1; }' +
+    'to { transform: translateX(100%); opacity: 0; }' +
+  '}';
+document.head.appendChild(style);
 
 if (window.va) {
   window.va('track', 'PageView');
