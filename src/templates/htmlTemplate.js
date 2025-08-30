@@ -12,7 +12,7 @@ export const generateHTML = (cssContent = '') => {
     
     <!-- NATURAL SEO META TAGS -->
     <title>RealityPatch - Get Honest About What's Holding You Back</title>
-    <meta name="description" content="Stop making excuses. Get direct insights into why you're stuck and what patterns are keeping you there. AI analysis of your exact situation.">
+    <meta name="description" content="Built this AI to call out my own excuses. Analyzes your exact words to spot patterns keeping you stuck. No signup needed - just get honest feedback.">    
     
     <!-- VIEWPORT & MOBILE -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -27,23 +27,6 @@ export const generateHTML = (cssContent = '') => {
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.ico">
-    
-    <!-- SOCIAL MEDIA SHARING -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://realitypatch.co">
-    <meta property="og:title" content="RealityPatch - Stop Making Excuses">
-    <meta property="og:description" content="Get brutally honest insights about why you're stuck. AI analysis that cuts through your excuses and shows you what's really happening.">
-    <meta property="og:image" content="https://realitypatch.co/og-image.png">
-    <meta property="og:image:alt" content="RealityPatch - AI Psychological Debugger Interface">
-    <meta property="og:site_name" content="RealityPatch">
-    
-    <!-- TWITTER CARDS -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://realitypatch.co">
-    <meta name="twitter:title" content="RealityPatch - Stop Making Excuses">
-    <meta name="twitter:description" content="Get brutally honest insights about why you're stuck. Cut through the excuses.">
-    <meta name="twitter:image" content="https://realitypatch.co/twitter-card.png">
-    <meta name="twitter:creator" content="@realitypatchai">
     
     <!-- NATURAL STRUCTURED DATA -->
     <script type="application/ld+json">
@@ -115,33 +98,33 @@ export const generateHTML = (cssContent = '') => {
           <!-- First-time user experience section -->
           <section class="first-time-section" aria-label="User outcomes and pattern analysis">
             <div class="stats-bar">
-              <div class="stat-item">Analysis <span class="stat-number">#1,247</span> today</div>
-              <div class="stat-item">Avg response: <span class="stat-number">23</span> seconds</div>
+              <div class="stat-item">Beta testing: <span class="stat-number">Live</span></div>
+              <div class="stat-item">Built by: <span class="stat-number">Student</span></div>
               <div class="stat-item">No signup</div>
             </div>
             
             <div class="outcomes-section">
-              <div class="outcomes-header">&gt; REAL_USER_OUTCOMES.LOG</div>
-              <div style="margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-secondary);">Recent breakthroughs from people just like you:</div>
+              <div class="outcomes-header">&gt; WHY_I_BUILT_THIS.LOG</div>
+              <div style="margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-secondary);">The real story behind this tool:</div>
               
               <div class="outcome-item">
-                <div class="outcome-quote">"Called out my 'perfectionism excuse' - shipped my first product in 3 weeks instead of waiting for the 'perfect' moment"</div>
-                <div class="outcome-pattern">PATTERN: Using perfectionism as procrastination shield</div>
+                <div class="outcome-quote">"I kept telling myself I needed to 'research more' before starting my business"</div>
+                <div class="outcome-pattern">REALITY: I was using research as sophisticated procrastination</div>
               </div>
               
               <div class="outcome-item">
-                <div class="outcome-quote">"Exposed how I was using my toxic ex as an excuse to avoid dating for 2 years"</div>
-                <div class="outcome-pattern">PATTERN: Using past trauma to avoid future vulnerability</div>
+                <div class="outcome-quote">"Spent 6 months waiting for the 'perfect moment' to launch"</div>
+                <div class="outcome-pattern">REALITY: I was scared and disguising it as strategy</div>
               </div>
               
               <div class="outcome-item">
-                <div class="outcome-quote">"Showed me I wasn't 'unlucky' - I was unconsciously choosing opportunities that would fail"</div>
-                <div class="outcome-pattern">PATTERN: Self-sabotage disguised as bad luck</div>
+                <div class="outcome-quote">"Built this to catch my own BS first, sharing in case it helps others"</div>
+                <div class="outcome-pattern">STATUS: Currently testing with real users</div>
               </div>
               
               <div class="pattern-check">
-                <div class="pattern-check-title">Quick Pattern Check:</div>
-                <div class="pattern-subtitle">Choose your biggest excuse (we'll analyze it first):</div>
+                <div class="pattern-check-title">Try the pattern detector:</div>
+                <div class="pattern-subtitle">Choose your biggest excuse (I'll show you the pattern):</div>
                 
                 <div class="excuse-options">
                   <button class="excuse-btn" data-pattern="perfectionism">"I need everything perfect first"</button>
