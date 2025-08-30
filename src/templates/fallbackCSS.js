@@ -81,6 +81,17 @@ body::before {
     100% { opacity: 1; }
 }
 
+@keyframes slideInFromTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .header {
     text-align: center;
     margin-bottom: 35px;
@@ -107,7 +118,7 @@ h2 {
   font-weight: 700;
   margin-bottom: 8px;
 }
-  
+
 .cursor {
     color: var(--accent-red);
     animation: blink 1s infinite;

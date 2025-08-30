@@ -78,6 +78,127 @@ function setupDemoAnalysis() {
   }
 }
 
+// AUTO-REFRESH SYSTEM: Detects when server data has changed and updates UI
+class DataSyncManager {
+  constructor() {
+    this.lastKnownHistoryCount = 0;
+    this.lastKnownUsageCount = 0;
+    this.sessionId = ClientDataService.getOrCreateSessionId();
+    this.isPolling = false;
+  }
+
+  // Start background polling to detect server changes
+  startBackgroundSync() {
+    if (this.isPolling) return;
+    
+    this.isPolling = true;
+    console.log('📡 Starting background data sync...');
+    
+    // Poll every 5 seconds to detect changes
+    this.pollInterval = setInterval(async () => {
+      try {
+        await this.checkForChanges();
+      } catch (error) {
+        console.warn('Background sync check failed:', error.message);
+      }
+    }, 5000);
+  }
+
+  // Check if server data has changed
+  async checkForChanges() {
+    try {
+      const freshData = await ServerDataService.getUserData(this.sessionId);
+      
+      const currentHistoryCount = freshData.history?.length || 0;
+      const currentUsageCount = freshData.usage?.count || 0;
+      
+      // Detect if history or usage has changed
+      const historyChanged = currentHistoryCount !== this.lastKnownHistoryCount;
+      const usageChanged = currentUsageCount !== this.lastKnownUsageCount;
+      
+      if (historyChanged || usageChanged) {
+        console.log('🔄 Server data changed, updating UI:', {
+          historyCount: this.lastKnownHistoryCount + ' → ' + currentHistoryCount,
+          usageCount: this.lastKnownUsageCount + ' → ' + currentUsageCount
+        });
+        
+        // Update global state and UI
+        window.userData = freshData;
+        updateUIWithUserData(freshData);
+        
+        // Update tracking variables
+        this.lastKnownHistoryCount = currentHistoryCount;
+        this.lastKnownUsageCount = currentUsageCount;
+        
+        // Show notification for significant changes
+        if (historyChanged && currentHistoryCount > this.lastKnownHistoryCount) {
+          this.showSyncNotification('History updated: ' + currentHistoryCount + ' patches');
+        }
+      }
+    } catch (error) {
+      console.warn('Change detection failed:', error.message);
+    }
+  }
+
+  // Initialize tracking with current state
+  async initialize() {
+    try {
+      const userData = await ServerDataService.getUserData(this.sessionId);
+      this.lastKnownHistoryCount = userData.history?.length || 0;
+      this.lastKnownUsageCount = userData.usage?.count || 0;
+      
+      console.log('📊 DataSyncManager initialized:', {
+        historyCount: this.lastKnownHistoryCount,
+        usageCount: this.lastKnownUsageCount
+      });
+    } catch (error) {
+      console.warn('DataSyncManager initialization failed:', error.message);
+    }
+  }
+
+  // Show subtle notification when data syncs
+  showSyncNotification(message) {
+    const notification = document.createElement('div');
+    notification.style.cssText = 
+      'position: fixed;' +
+      'bottom: 20px;' +
+      'right: 20px;' +
+      'background: var(--accent-green);' +
+      'color: white;' +
+      'padding: 8px 12px;' +
+      'border-radius: 4px;' +
+      'font-family: "JetBrains Mono", monospace;' +
+      'font-size: 11px;' +
+      'z-index: 1000;' +
+      'opacity: 0;' +
+      'transition: opacity 0.3s ease;';
+    notification.textContent = '> ' + message;
+    
+    document.body.appendChild(notification);
+    
+    // Fade in
+    setTimeout(() => notification.style.opacity = '1', 100);
+    
+    // Fade out and remove
+    setTimeout(() => {
+      notification.style.opacity = '0';
+      setTimeout(() => notification.remove(), 300);
+    }, 2000);
+  }
+
+  // Stop polling
+  stop() {
+    if (this.pollInterval) {
+      clearInterval(this.pollInterval);
+      this.isPolling = false;
+      console.log('📡 Background sync stopped');
+    }
+  }
+}
+
+// Initialize the sync manager when DOM is ready
+let dataSyncManager;
+
 // OPTIMIZATION: Immediate UI setup on DOM ready (before full data loading)
 document.addEventListener('DOMContentLoaded', function() {
   console.log('🚀 DOM ready - determining UI state immediately');
@@ -96,6 +217,12 @@ document.addEventListener('DOMContentLoaded', function() {
   setTimeout(() => {
     initializeUserDataBackground();
   }, 100);
+
+  // Initialize background sync
+  dataSyncManager = new DataSyncManager();
+  dataSyncManager.initialize().then(() => {
+    dataSyncManager.startBackgroundSync();
+  });
 });
 
 function setupPatternCheckButtons() {
@@ -187,6 +314,63 @@ function setupEventListeners() {
     button.addEventListener('click', handlePatchSubmission);
   }
 }
+
+// Console-compatible version without template literals
+async function exhaustDailyLimit() {
+  console.log('Making 10 requests to exhaust daily limit...');
+  
+  for (let i = 1; i <= 10; i++) {
+    try {
+      const response = await fetch('/api/patch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Session-ID': ClientDataService.getOrCreateSessionId()
+        },
+        body: JSON.stringify({ 
+          userInput: 'Test request ' + i 
+        })
+      });
+      
+      const data = await response.json();
+      console.log('Request ' + i + ':', data.limitReached ? 'LIMIT REACHED' : 'Success');
+      
+      // Update UI with fresh data
+      if (data.userData) {
+        window.userData = data.userData;
+        updateUIWithUserData(data.userData);
+      }
+      
+      if (data.limitReached) {
+        console.log('Daily limit exhausted!');
+        break;
+      }
+    } catch (error) {
+      console.log('Request ' + i + ' failed:', error.message);
+    }
+  }
+  
+  console.log('Requests complete - checking final state...');
+  await refreshUserData();
+}
+
+// Simple refresh function
+async function refreshUserData() {
+  const sessionId = ClientDataService.getOrCreateSessionId();
+  const freshData = await ServerDataService.getUserData(sessionId);
+  
+  window.userData = freshData;
+  updateUIWithUserData(freshData);
+  
+  console.log('UI refreshed');
+  console.log('Usage: ' + freshData.usage.count + '/' + freshData.usage.limit);
+  console.log('History count: ' + (freshData.history ? freshData.history.length : 0));
+  console.log('Credits: ' + freshData.credits.extra);
+}
+
+// Make functions globally available
+window.exhaustDailyLimit = exhaustDailyLimit;
+window.refreshUserData = refreshUserData;
 
 // OPTIMIZATION: Background data loading that doesn't block UI
 async function initializeUserDataBackground() {
@@ -713,11 +897,6 @@ async function handlePatchSubmission() {
       return;
     }
     
-    if (response.userData) {
-      userData = response.userData;
-      updateUIWithUserData(userData);
-    }
-    
     typewriterEffect(response.patch, () => {
       setTimeout(() => {
         const statusHtml = response.isFollowUp 
@@ -727,8 +906,13 @@ async function handlePatchSubmission() {
         resultContent.innerHTML += statusHtml;
       }, 1000);
       
-      if (userData && userData.history) {
-        showHistorySection(userData.history);
+      // CLEAN FIX: Update userData and immediately refresh entire UI
+      if (response.userData) {
+        userData = response.userData;
+        ClientDataService.cacheData('userData', userData, 15);
+        
+        // Immediately update the entire UI with fresh server data
+        updateUIWithUserData(userData);
       }
       
       textarea.value = '';
@@ -794,7 +978,10 @@ function showMigrationSkippedNotice() {
   showNotice('Using local data - sync will be attempted later', 'info', 6000);
 }
 
-function showNotice(message, type = 'info', duration = 5000) {
+function showNotice(message, type, duration) {
+  type = type || 'info';
+  duration = duration || 5000;
+  
   const colors = {
     success: '#2ecc71',
     warning: '#f39c12', 
@@ -825,11 +1012,11 @@ window.toggleHistory = function() {
   if (isCurrentlyVisible) {
     content.style.display = 'none';
     toggle.textContent = '> Show';
-    localStorage.setItem('rp-history-visible', 'false');
+    ClientDataService.safeSet('rp-history-visible', 'false');
   } else {
     content.style.display = 'block';
     toggle.textContent = '> Hide';
-    localStorage.setItem('rp-history-visible', 'true');
+    ClientDataService.safeSet('rp-history-visible', 'true');
   }
 }
 
