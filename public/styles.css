@@ -62,7 +62,7 @@ body::before {
     backdrop-filter: blur(10px);
 }
 
-/* Sharp accent line instead of gradient rainbow */
+/* Sharp accent line */
 .card::before {
     content: '';
     position: absolute;
@@ -120,43 +120,7 @@ h1 {
     font-weight: 600;
 }
 
-/* UNIFIED STATS BAR STYLING - Used by both first-time and main interface */
-.stats-bar, .main-stats-bar {
-    background: var(--bg-dark);
-    padding: 15px 20px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    margin-bottom: 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    animation: fadeIn 0.5s ease-out;
-    gap: 20px; /* FIXED: Add gap for proper spacing */
-}
-
-/* First-time section stats bar has different border styling */
-.first-time-section .stats-bar {
-    background: var(--bg-dark);
-    border-bottom: 1px solid var(--border);
-    border-radius: 0;
-    margin-bottom: 0;
-}
-
-.stat-item {
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap; /* Prevent text wrapping */
-}
-
-.stat-number {
-    color: var(--accent-green);
-    font-weight: 700;
-}
-
-/* First-time user experience styles */
+/* SIMPLIFIED FIRST-TIME SECTION */
 .first-time-section {
     margin-top: 25px;
     margin-bottom: 30px;
@@ -167,158 +131,166 @@ h1 {
     animation: fadeIn 0.5s ease-out;
 }
 
-.outcomes-section {
-    padding: 25px 20px;
+/* NEW: Live demo section styles */
+.live-demo-section {
+    padding: 30px 25px;
 }
 
-.outcomes-header {
+.demo-header {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--accent-red);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 700;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
-.outcome-item {
-    margin-bottom: 20px;
-    background: var(--bg-dark);
-    border-radius: 4px;
-    padding: 15px;
-    border-left: 3px solid var(--accent-green);
-}
-
-.outcome-quote {
+.demo-subtitle {
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
-    color: var(--text-primary);
-    font-style: italic;
-    margin-bottom: 8px;
-    line-height: 1.5;
+    color: var(--text-secondary);
+    margin-bottom: 25px;
 }
 
-.outcome-pattern {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    color: var(--accent-red);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 700;
-}
-
-.pattern-check {
+.demo-input-container {
     background: var(--bg-dark);
+    border: 1px solid var(--border);
     border-radius: 4px;
     padding: 20px;
-    margin-top: 25px;
-    border: 1px solid var(--border);
-}
-
-.pattern-check-title {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
-    color: var(--accent-blue);
-    font-weight: 700;
-    margin-bottom: 15px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.pattern-subtitle {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 15px;
-}
-
-.excuse-options {
-    display: grid;
-    gap: 10px;
     margin-bottom: 20px;
 }
 
-.excuse-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 4px;
-    padding: 12px 15px;
+.demo-input-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.demo-text {
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s ease;
-}
-
-.excuse-btn:hover {
-    border-color: var(--accent-red);
     color: var(--text-primary);
+    line-height: 1.6;
+    font-style: italic;
     background: var(--surface-light);
-    transform: translateX(8px);
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 3px solid var(--accent-blue);
 }
 
-.excuse-btn.selected {
-    border-color: var(--accent-red);
+.demo-analyze-btn {
+    width: 100%;
+    padding: 15px 20px;
+    background: transparent;
+    border: 2px solid var(--accent-red);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent-red);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+.demo-analyze-btn:hover {
     background: var(--accent-red);
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255, 51, 102, 0.3);
 }
 
-.pattern-analysis {
-    background: var(--surface);
+.demo-output {
+    background: var(--bg-dark);
     border: 1px solid var(--accent-red);
     border-radius: 4px;
-    padding: 15px;
-    margin-top: 15px;
+    overflow: hidden;
+    margin-bottom: 25px;
     opacity: 0;
-    transform: translateY(10px);
-    transition: all 0.3s ease;
+    transform: translateY(20px);
+    transition: all 0.5s ease;
 }
 
-.pattern-analysis.show {
+.demo-output.show {
     opacity: 1;
     transform: translateY(0);
 }
 
-.pattern-detected {
+.analysis-header {
+    background: var(--accent-red);
+    color: white;
+    padding: 12px 20px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+}
+
+.pattern-detected {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.pattern-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
     color: var(--accent-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.pattern-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.reality-check, .specific-action {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.specific-action {
+    border-bottom: none;
+}
+
+.reality-label, .action-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent-green);
     text-transform: uppercase;
     letter-spacing: 1px;
     font-weight: 700;
     margin-bottom: 8px;
 }
 
-.pattern-name {
+.action-label {
+    color: var(--accent-blue);
+}
+
+.reality-content, .action-content {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 14px;
+    font-size: 13px;
     color: var(--text-primary);
-    font-weight: 700;
-    margin-bottom: 10px;
-}
-
-.pattern-explanation {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-secondary);
     line-height: 1.6;
-    margin-bottom: 10px;
 }
 
-.pattern-insight {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--accent-green);
-    font-style: italic;
-    font-weight: 600;
-}
-
-.personal-analysis-cta {
+.demo-cta {
+    text-align: center;
+    padding: 25px 20px;
     background: var(--surface);
     border-top: 1px solid var(--border);
-    padding: 20px;
-    text-align: center;
 }
 
 .cta-question {
@@ -366,7 +338,6 @@ h1 {
     box-shadow: 0 10px 25px rgba(255, 51, 102, 0.4);
 }
 
-/* Rest of the existing styles remain the same... */
 .terminal-prompt {
     font-family: 'JetBrains Mono', monospace;
     color: var(--accent-green);
@@ -561,7 +532,7 @@ textarea::placeholder {
     100% { content: ''; }
 }
 
-/* Main input section - initially hidden, smooth show */
+/* Main input section - initially hidden */
 .main-input-section {
     opacity: 0;
     transform: translateY(20px);
@@ -584,7 +555,7 @@ textarea::placeholder {
     }
 }
 
-/* All remaining existing styles... */
+/* Status and error messages */
 .status-message {
     margin-top: 20px;
     padding: 15px;
@@ -609,87 +580,61 @@ textarea::placeholder {
     padding: 20px;
 }
 
-/* Enhanced assignment badge styling with completion status */
+/* Assignment badges */
 .assignment-badge.completed {
-  background: #2ecc71;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: bold;
-  margin-left: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    background: #2ecc71;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Assignment badge styling */
 .assignment-badge {
-  background: #ff6b35;
-  color: white;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: bold;
-  margin-left: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+    background: #ff6b35;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-/* Enhanced assignment reminder for multiple assignments */
 .assignment-reminder {
-  background: linear-gradient(135deg, #ff4757, #ff3742);
-  border: 2px solid #ff6b7a;
-  border-radius: 8px;
-  padding: 15px;
-  margin: 20px 0;
-  animation: pulse-reminder 2s ease-in-out infinite;
+    background: linear-gradient(135deg, #ff4757, #ff3742);
+    border: 2px solid #ff6b7a;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 20px 0;
+    animation: pulse-reminder 2s ease-in-out infinite;
 }
 
 .assignment-reminder .reminder-header {
-  color: #fff;
-  font-weight: bold;
-  font-size: 14px;
-  margin-bottom: 8px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 8px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 .assignment-reminder .reminder-content {
-  color: #ffe6e8;
-  font-size: 13px;
-  line-height: 1.4;
+    color: #ffe6e8;
+    font-size: 13px;
+    line-height: 1.4;
 }
 
 @keyframes pulse-reminder {
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
-  }
-  50% { 
-    box-shadow: 0 0 30px rgba(255, 71, 87, 0.6);
-  }
-}
-
-@keyframes pulse-border {
-    0% { border-color: var(--accent-red); }
-    100% { border-color: #cc0044; }
-}
-
-.reminder-header {
-    background: var(--accent-red);
-    color: white;
-    padding: 8px 15px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    font-weight: 700;
-}
-
-.reminder-content {
-    padding: 15px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    color: var(--text-primary);
-    line-height: 1.5;
+    0%, 100% { 
+        box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
+    }
+    50% { 
+        box-shadow: 0 0 30px rgba(255, 71, 87, 0.6);
+    }
 }
 
 /* History Section */
@@ -725,7 +670,7 @@ textarea::placeholder {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     color: var(--text-secondary);
-    transition: color 0.2s ease;
+    transition: color0.2s ease;
 }
 
 .history-header:hover #history-toggle {
@@ -812,12 +757,12 @@ textarea::placeholder {
     opacity: 0.7;
 }
 
-/* Creator Footer - Outside main card for clean UX */
+/* NEW: Creator Footer - Clean, authentic, outside main card */
 .creator-footer {
+    margin-top: 40px;
+    padding: 25px 0;
     text-align: center;
-    margin-top: 30px;
-    padding: 20px 0;
-    opacity: 0.8;
+    opacity: 0.7;
     transition: opacity 0.3s ease;
 }
 
@@ -825,45 +770,17 @@ textarea::placeholder {
     opacity: 1;
 }
 
-.creator-story {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-primary);
-    font-style: italic;
-    margin: 8px 0;
-    opacity: 0.9;
-}
-
-.creator-info {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-}
-
-.creator-name {
-    color: var(--text-primary);
-    font-weight: 700;
-}
-
 .creator-contact {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
-    color: var(--text-secondary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
 }
 
 .contact-link {
     color: var(--accent-red);
     text-decoration: none;
-    font-weight: 700;
     transition: color 0.2s ease;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    display: block;
+    margin-bottom: 5px;
 }
 
 .contact-link:hover {
@@ -871,114 +788,119 @@ textarea::placeholder {
 }
 
 .creator-tagline {
-    opacity: 0.7;
-    font-style: italic;
+    color: var(--text-secondary);
+    opacity: 0.8;
 }
 
+/* Credits and upgrade sections */
 .credits-display {
-  background: var(--surface-light);
-  border: 1px solid var(--accent-green);
-  border-radius: 4px;
-  padding: 12px 15px;
-  margin: 20px 0;
-  text-align: center;
+    background: var(--surface-light);
+    border: 1px solid var(--accent-green);
+    border-radius: 4px;
+    padding: 12px 15px;
+    margin: 20px 0;
+    text-align: center;
 }
 
 .credits-header {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  color: var(--accent-green);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--accent-green);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
 }
 
 .credits-count {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  color: var(--text-primary);
-  font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .upgrade-message {
-  background: var(--bg-dark);
-  border: 1px solid var(--accent-red);
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 20px 0;
+    background: var(--bg-dark);
+    border: 1px solid var(--accent-red);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 20px 0;
 }
 
 .upgrade-header {
-  background: var(--accent-red);
-  color: white;
-  padding: 12px 20px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  font-weight: 700;
+    background: var(--accent-red);
+    color: white;
+    padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
 }
 
 .upgrade-content {
-  padding: 25px;
-  text-align: center;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 14px;
-  line-height: 1.6;
+    padding: 25px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .upgrade-btn-primary {
-  display: inline-block;
-  padding: 15px 25px;
-  background: linear-gradient(135deg, var(--accent-red), #cc0044);
-  color: white;
-  text-decoration: none;
-  border-radius: 4px;
-  font-weight: 700;
-  margin: 15px 0;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+    display: inline-block;
+    padding: 15px 25px;
+    background: linear-gradient(135deg, var(--accent-red), #cc0044);
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-weight: 700;
+    margin: 15px 0;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .upgrade-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px rgba(255, 51, 102, 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(255, 51, 102, 0.4);
 }
 
 .reset-timer {
-  margin-top: 20px;
-  color: var(--text-secondary);
-  font-size: 12px;
+    margin-top: 20px;
+    color: var(--text-secondary);
+    font-size: 12px;
 }
 
 .older-history-section {
-  margin-top: 20px;
-  border-top: 1px solid var(--border);
-  padding-top: 15px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    padding-top: 15px;
 }
 
 .older-history-toggle {
-  cursor: pointer;
-  padding: 8px 0;
-  color: var(--text-secondary);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
-  border-bottom: 1px solid transparent;
-  transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 8px 0;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .older-history-toggle:hover {
-  color: var(--accent-red);
-  border-bottom-color: var(--border);
+    color: var(--accent-red);
+    border-bottom-color: var(--border);
 }
 
 .older-history-content {
-  margin-top: 15px;
+    margin-top: 15px;
 }
 
-/* FIXED: Responsive styles with better spacing control */
+/* Mobile responsiveness */
 @media (max-width: 640px) {
+    .container {
+        padding: 0 10px;
+    }
+
     .card {
         padding: 30px 25px;
     }
@@ -987,39 +909,41 @@ textarea::placeholder {
         font-size: 2rem;
     }
 
-    /* FIXED: Better mobile stats bar with proper spacing */
-    .stats-bar, .main-stats-bar {
-        flex-direction: column;
-        gap: 12px; /* Increased gap for mobile stacking */
-        text-align: center;
-        padding: 20px;
-    }
-    
-    .stat-item {
-        margin: 0;
-        line-height: 1.4;
+    .live-demo-section {
+        padding: 25px 20px;
     }
 
-    .outcomes-section {
-        padding: 20px 15px;
-    }
-
-    .pattern-check {
+    .demo-input-container {
         padding: 15px;
     }
 
-    .excuse-options {
-        gap: 8px;
+    .demo-text {
+        font-size: 12px;
+        padding: 12px;
     }
 
-    .excuse-btn {
-        padding: 10px 12px;
-        font-size: 12px;
+    .demo-analyze-btn {
+        padding: 12px 15px;
+        font-size: 13px;
+    }
+
+    .pattern-detected, .reality-check, .specific-action {
+        padding: 15px;
+    }
+
+    .demo-cta {
+        padding: 20px 15px;
+    }
+
+    .start-analysis-btn {
+        padding: 15px 25px;
+        font-size: 14px;
     }
             
     textarea {
         padding: 15px;
         font-size: 14px;
+        min-height: 100px;
     }
 
     .history-header {
@@ -1040,17 +964,15 @@ textarea::placeholder {
     }
 
     .creator-footer {
-        margin-top: 25px;
-        padding: 15px 0;
+        margin-top: 30px;
+        padding: 20px 0;
     }
-    
-    .creator-contact {
-        flex-direction: column;
-        gap: 6px;
+
+    .contact-link {
+        font-size: 10px;
     }
-    
-    .creator-info,
-    .creator-contact {
-        font-size: 11px;
+
+    .creator-tagline {
+        font-size: 10px;
     }
 }

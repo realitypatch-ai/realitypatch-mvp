@@ -16,48 +16,6 @@ function determineInitialUIState() {
   }
 }
 
-// FIXED: Simplified stats bar addition with proper CSS classes
-function addStatsBarToMainInterface() {
-  // Don't add if stats bar already exists
-  if (document.getElementById('main-stats-bar')) {
-    console.log('Stats bar already exists, skipping');
-    return;
-  }
-  
-  // Only add to main interface
-  const mainSection = document.getElementById('mainInputSection');
-  const firstTimeSection = document.querySelector('.first-time-section');
-  
-  // Check if we're in main interface mode
-  const isMainInterfaceMode = mainSection && 
-    mainSection.style.display === 'block' && 
-    (!firstTimeSection || firstTimeSection.style.display === 'none');
-  
-  if (!isMainInterfaceMode) {
-    console.log('Not in main interface mode, skipping stats bar');
-    return;
-  }
-  
-  console.log('Adding stats bar to main interface with proper CSS classes');
-  
-  // FIXED: Use proper CSS classes instead of inline styles
-  const statsHtml = 
-    '<div id="main-stats-bar" class="main-stats-bar">' +
-      '<div class="stat-item">Beta testing: <span class="stat-number">Live</span></div>' +
-      '<div class="stat-item">Built by: <span class="stat-number">Student</span></div>' +
-      '<div class="stat-item">No signup</div>' +
-    '</div>';
-  
-  // Insert after the terminal prompt but before input section
-  const terminalPrompt = mainSection.querySelector('.terminal-prompt');
-  if (terminalPrompt) {
-    terminalPrompt.insertAdjacentHTML('afterend', statsHtml);
-    console.log('✅ Stats bar successfully added to main interface');
-  } else {
-    console.error('Could not find terminal prompt to insert stats bar');
-  }
-}
-
 // FIXED: Centralized function to show main interface
 function showMainInterface() {
   const firstTimeSection = document.querySelector('.first-time-section');
@@ -73,13 +31,51 @@ function showMainInterface() {
       mainInputSection.classList.add('show');
       if (textarea) textarea.focus();
       
-      // OPTIMIZATION: Add stats bar immediately after showing interface
-      addStatsBarToMainInterface();
     }, 50); // Much faster than 100ms
   }
   
   // Mark first-time experience as complete
   ClientDataService.markFirstTimeComplete();
+}
+
+// NEW: Demo functionality for the "RUN PATTERN ANALYSIS" button
+function setupDemoAnalysis() {
+  const demoAnalyzeBtn = document.getElementById('demoAnalyzeBtn');
+  const demoOutput = document.getElementById('demoOutput');
+  
+  if (demoAnalyzeBtn && demoOutput) {
+    demoAnalyzeBtn.addEventListener('click', () => {
+      // Disable button during animation
+      demoAnalyzeBtn.disabled = true;
+      demoAnalyzeBtn.textContent = '> ANALYZING...';
+      
+      // Add loading animation to demo text
+      const demoText = document.getElementById('demoText');
+      if (demoText) {
+        demoText.style.borderLeft = '3px solid var(--accent-red)';
+        demoText.style.animation = 'pulse 1s ease-in-out infinite';
+      }
+      
+      // Show results after a realistic delay
+      setTimeout(() => {
+        demoOutput.classList.add('show');
+        
+        // Reset button and demo text
+        demoAnalyzeBtn.disabled = false;
+        demoAnalyzeBtn.textContent = '> RUN PATTERN ANALYSIS';
+        
+        if (demoText) {
+          demoText.style.borderLeft = '3px solid var(--accent-blue)';
+          demoText.style.animation = 'none';
+        }
+        
+        // Track the demo interaction
+        if (window.va) {
+          window.va('track', 'DemoAnalysisRun');
+        }
+      }, 2000); // 2 second delay for realistic AI processing feel
+    });
+  }
 }
 
 // OPTIMIZATION: Immediate UI setup on DOM ready (before full data loading)
@@ -91,6 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Continue with pattern check setup for first-time users
   if (initialState === 'first-time') {
     setupPatternCheckButtons();
+    setupDemoAnalysis(); // NEW: Setup demo functionality
   }
   
   setupEventListeners();

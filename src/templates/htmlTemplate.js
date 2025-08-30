@@ -1,4 +1,4 @@
-// Enhanced htmlTemplate.js with natural SEO optimization
+// src/templates/htmlTemplate.js - SIMPLIFIED with one killer demo
 import { getFallbackCSS } from './fallbackCSS.js';
 import { getClientScript } from './clientScript.js';
 
@@ -10,16 +10,13 @@ export const generateHTML = (cssContent = '') => {
   <head>
     <meta charset="UTF-8">
     
-    <!-- NATURAL SEO META TAGS -->
-    <title>RealityPatch - Get Honest About What's Holding You Back</title>
-    <meta name="description" content="Built this AI to call out my own excuses. Analyzes your exact words to spot patterns keeping you stuck. No signup needed - just get honest feedback.">    
+    <!-- SEO META TAGS -->
+    <title>RealityPatch - Spot the Exact Excuses Keeping You Stuck</title>
+    <meta name="description" content="AI that analyzes your words to expose self-deception patterns. Get specific insights about what's really holding you back - no generic advice.">    
     
     <!-- VIEWPORT & MOBILE -->
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#00ff66">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <!-- FAVICON COLLECTION -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -28,14 +25,14 @@ export const generateHTML = (cssContent = '') => {
     <link rel="manifest" href="/site.webmanifest">
     <link rel="shortcut icon" href="/favicon.ico">
     
-    <!-- NATURAL STRUCTURED DATA -->
+    <!-- STRUCTURED DATA -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "RealityPatch",
-      "url": "https://realitypatch.co",
-      "description": "Get direct insights into what's keeping you stuck",
+      "url": "https://www.realitypatch.app",
+      "description": "AI tool that analyzes language patterns to identify self-deception",
       "applicationCategory": "UtilityApplication",
       "operatingSystem": "Web Browser",
       "offers": {
@@ -52,11 +49,7 @@ export const generateHTML = (cssContent = '') => {
     </script>
     
     <!-- CANONICAL URL -->
-    <link rel="canonical" href="https://realitypatch.co">
-    
-    <!-- PRECONNECT FOR PERFORMANCE -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="canonical" href="https://www.realitypatch.app">
     
     <!-- FONTS -->
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@600;800&display=swap" rel="stylesheet">
@@ -67,16 +60,7 @@ export const generateHTML = (cssContent = '') => {
     </script>
     <script defer src="/_vercel/insights/script.js"></script>
     
-    <!-- GOOGLE ANALYTICS 4 (Replace with your GA4 ID) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-XXXXXXXXXX');
-    </script>
-    
-    <!-- BASIC SEO SIGNALS -->
+    <!-- SEO -->
     <meta name="robots" content="index, follow">
     <meta name="author" content="Falah Faizal">
     
@@ -90,115 +74,100 @@ export const generateHTML = (cssContent = '') => {
         <div class="header">
           <div class="subtitle">&gt; PSYCHOLOGICAL DEBUGGER</div>
           <h1>RealityPatch<span class="cursor">_</span></h1>
-          <div class="tagline">Identify what's really holding you back</div>
-        </header>
+          <div class="tagline">Spot the exact excuses keeping you stuck</div>
+        </div>
 
-        <!-- MAIN CONTENT AREA -->
-        <main id="main-content">
-          <!-- First-time user experience section -->
-          <section class="first-time-section" aria-label="User outcomes and pattern analysis">
-            <div class="stats-bar">
-              <div class="stat-item">Beta testing: <span class="stat-number">Live</span></div>
-              <div class="stat-item">Built by: <span class="stat-number">Student</span></div>
-              <div class="stat-item">No signup</div>
+        <!-- SIMPLIFIED: One killer demo instead of clutter -->
+        <div class="first-time-section">
+          <div class="live-demo-section">
+            <div class="demo-header">&gt; LIVE_ANALYSIS_DEMO</div>
+            <div class="demo-subtitle">Watch real pattern detection in action:</div>
+            
+            <div class="demo-input-container">
+              <div class="demo-input-label">&gt; Sample Input:</div>
+              <div class="demo-text" id="demoText">
+                "I want to start my own business but I need to research the market more first. I've been looking into different strategies and competitor analysis for about 6 months now. I just want to make sure I have a solid plan before I jump in..."
+              </div>
             </div>
             
-            <div class="outcomes-section">
-              <div class="outcomes-header">&gt; WHY_I_BUILT_THIS.LOG</div>
-              <div style="margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-secondary);">The real story behind this tool:</div>
-              
-              <div class="outcome-item">
-                <div class="outcome-quote">"I kept telling myself I needed to 'research more' before starting my business"</div>
-                <div class="outcome-pattern">REALITY: I was using research as sophisticated procrastination</div>
+            <button class="demo-analyze-btn" id="demoAnalyzeBtn">
+              &gt; RUN PATTERN ANALYSIS
+            </button>
+            
+            <div class="demo-output" id="demoOutput">
+              <div class="analysis-header">&gt; ANALYSIS_COMPLETE</div>
+              <div class="pattern-detected">
+                <div class="pattern-label">DETECTED PATTERN:</div>
+                <div class="pattern-name">Analysis Paralysis</div>
               </div>
               
-              <div class="outcome-item">
-                <div class="outcome-quote">"Spent 6 months waiting for the 'perfect moment' to launch"</div>
-                <div class="outcome-pattern">REALITY: I was scared and disguising it as strategy</div>
-              </div>
-              
-              <div class="outcome-item">
-                <div class="outcome-quote">"Built this to catch my own BS first, sharing in case it helps others"</div>
-                <div class="outcome-pattern">STATUS: Currently testing with real users</div>
-              </div>
-              
-              <div class="pattern-check">
-                <div class="pattern-check-title">Try the pattern detector:</div>
-                <div class="pattern-subtitle">Choose your biggest excuse (I'll show you the pattern):</div>
-                
-                <div class="excuse-options">
-                  <button class="excuse-btn" data-pattern="perfectionism">"I need everything perfect first"</button>
-                  <button class="excuse-btn" data-pattern="timing">"The timing isn't right yet"</button>
-                  <button class="excuse-btn" data-pattern="readiness">"I'm not ready/qualified enough"</button>
-                  <button class="excuse-btn" data-pattern="research">"I need to research more first"</button>
+              <div class="reality-check">
+                <div class="reality-label">REALITY CHECK:</div>
+                <div class="reality-content">
+                  You're using research as sophisticated procrastination. "6 months of strategy research" = 6 months of avoiding the scary part: actually starting. The phrase "solid plan" is code for "perfect plan that eliminates all risk."
                 </div>
-                
-                <div class="pattern-analysis" id="patternAnalysis">
-                  <div class="pattern-detected">&gt; PATTERN_DETECTED</div>
-                  <div class="pattern-name" id="patternName">Analysis Paralysis</div>
-                  <div class="pattern-explanation" id="patternExplanation">
-                    Research feels productive, but you are using it as sophisticated procrastination. Each new piece of information gives you permission to delay action just a little longer until you know "enough."
-                  </div>
-                  <div class="pattern-insight" id="patternInsight">
-                    You already know enough to start. More research will not eliminate the fear - only action will.
-                  </div>
+              </div>
+              
+              <div class="specific-action">
+                <div class="action-label">SPECIFIC ACTION:</div>
+                <div class="action-content">
+                  Stop researching. Pick your best business idea right now. Validate it with 10 real potential customers this week. You'll learn more in 7 days of testing than 6 months of planning.
                 </div>
               </div>
             </div>
             
-            <div class="personal-analysis-cta">
-              <div class="cta-question">Want analysis of YOUR specific situation?</div>
-              <button id="startAnalysisBtn" class="start-analysis-btn">GET MY PERSONAL ANALYSIS</button>
+            <div class="demo-cta">
+              <div class="cta-question">Ready for analysis of YOUR patterns?</div>
+              <button id="startAnalysisBtn" class="start-analysis-btn">ANALYZE MY SITUATION</button>
             </div>
           </div>
+        </div>
 
-          <!-- Main input section - initially hidden -->
-          <div class="main-input-section" id="mainInputSection" style="display: none;">
-            <div class="terminal-prompt">[user@reality ~]$ describe_problem --verbose</div>
-            
-            <div class="input-section">
-              <div class="input-label">Input Buffer:</div>
-              <textarea id="userInput" 
-                       placeholder="Describe what you've been stuck on or putting off...
+        <!-- Main input section - initially hidden -->
+        <div class="main-input-section" id="mainInputSection" style="display: none;">
+          <div class="terminal-prompt">[user@reality ~]$ describe_problem --verbose</div>
+          
+          <div class="input-section">
+            <div class="input-label">Input Buffer:</div>
+            <textarea id="userInput" 
+                     placeholder="What excuse are you using to stay stuck?
 
 Examples:
-- I keep starting projects but don't finish them
-- I want to start a business but keep waiting for clarity  
-- I know what would help but struggle to take action
-- I notice patterns in my relationships that don't work" 
-                       rows="5"></textarea>
-            </div>
+- I keep researching but never actually start
+- I tell myself I need more skills/money/time first
+- I know what to do but convince myself it won't work
+- I find reasons to quit when things get uncomfortable" 
+                     rows="5"></textarea>
+          </div>
 
-            <button id="patchBtn" class="analyze-btn">
-              GET MY ANALYSIS
-            </button>
+          <button id="patchBtn" class="analyze-btn">
+            GET MY ANALYSIS
+          </button>
 
-            <div id="output">
-              <div class="result-container">
-                <div class="result-header">REALITY.PATCH OUTPUT</div>
-                <div class="result-content" id="resultContent">
-                  <!-- Results will appear here -->
-                </div>
+          <div id="output">
+            <div class="result-container">
+              <div class="result-header">REALITY.PATCH OUTPUT</div>
+              <div class="result-content" id="resultContent">
+                <!-- Results will appear here -->
               </div>
             </div>
-
-            <div class="examples">
-              <div class="examples-header">&gt; SAMPLE_INPUTS.TXT</div>
-              <button class="example-btn" data-example="I keep starting projects but struggle to finish them">
-                &gt; Starting but not completing projects
-              </button>
-              <button class="example-btn" data-example="I want to start a business but keep waiting for more clarity">
-                &gt; Waiting for the "right" business idea
-              </button>
-              <button class="example-btn" data-example="I know what would help but find it hard to take action">
-                &gt; Knowing what to do but not doing it
-              </button>
-              <button class="example-btn" data-example="I notice unhelpful patterns in my relationships">
-                &gt; Recurring relationship challenges
-              </button>
-            </div>
           </div>
-        </main>
+
+          <div class="examples">
+            <div class="examples-header">&gt; SAMPLE_INPUTS.TXT</div>
+            <button class="example-btn" data-example="I need to research more before starting my business">
+              &gt; "I need to research more before starting"
+            </button>
+            <button class="example-btn" data-example="I'm waiting for the perfect opportunity to launch">
+              &gt; "I'm waiting for the perfect opportunity"
+            </button>
+            <button class="example-btn" data-example="I know what to do but keep finding excuses not to">
+              &gt; "I know what to do but keep procrastinating"
+            </button>
+            <button class="example-btn" data-example="I sabotage myself whenever things start going well">
+              &gt; "I sabotage myself when things get serious"
+            </button>
+          </div>
 
         <!-- History Section -->
         <div class="history-section" id="historySection">
@@ -213,19 +182,13 @@ Examples:
 
       </div>
 
-      <!-- Creator Footer -->
-      <div class="creator-footer">
-        <div class="creator-info">
-          Built by <span class="creator-name">Falah Faizal</span> - Someone who got tired of staying stuck
-        </div>
-        <div class="creator-story">
-          "I built this because I needed it. Sometimes we need clarity more than comfort."
-        </div>
+      <!-- UPDATED: Clean creator footer -->
+      <footer class="creator-footer">
         <div class="creator-contact">
-          <a href="mailto:realitypatchai@gmail.com" class="contact-link">EMAIL</a>
-          <span class="creator-tagline">Questions? Feedback? Found a bug in reality?</span>
+          <a href="mailto:realitypatchai@gmail.com" class="contact-link">realitypatchai@gmail.com</a>
+          <div class="creator-tagline">Feedback, questions, or found a bug in reality?</div>
         </div>
-      </div>
+      </footer>
 
     </div>
 
